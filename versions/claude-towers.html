@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>THE TOWER — Eternal Ascent</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+
+:root {
+  --void: #03050d;
+  --ink: #0a0f1e;
+  --panel: rgba(8,12,22,0.88);
+  --border: rgba(255,255,255,0.06);
+  --text: #c8d4e8;
+  --muted: #4a5568;
+  --accent: #4fd1c5;
+  --warm: #f6ad55;
+  --danger: #fc8181;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+body {
+  background: var(--void);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  overflow: hidden;
+  width: 100vw;
+  height: 100dvh;
+  user-select: none;
+}
+
+canvas {
+  position: absolute;
+  top: 0; left: 0;
+  display: block;
+}
+
+#bg-canvas { z-index: 1; }
+#game-canvas { z-index: 2; }
+
+/* ── UI LAYER ── */
+#ui {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Top HUD */
+#hud-top {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  backdrop-filter: blur(16px);
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.hud-seg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 18px;
+  border-right: 1px solid var(--border);
+}
+
+.hud-seg:last-child { border-right: none; }
+
+.hud-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.hud-val {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: 0.05em;
+}
+
+.hud-val.accent { color: var(--accent); }
+.hud-val.warm { color: var(--warm); }
+.hud-val.danger { color: var(--danger); }
+
+/* Stamina bar */
+#stamina-track {
+  width: 80px;
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+#stamina-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width 0.15s linear, background 0.4s ease;
+}
+
+/* Phase indicator */
+#phase-pill {
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  transition: color 1.5s ease;
+}
+
+/* Side: Climber ID */
+#climber-id {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+#id-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+#id-name {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text);
+}
+
+#id-sub {
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 1px;
+  letter-spacing: 0.08em;
+}
+
+/* Tower selector */
+#tower-select {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.tower-btn {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: all 0.25s;
+  backdrop-filter: blur(10px);
+}
+
+.tower-btn:hover, .tower-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Controls hint */
+#controls-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 7px 18px;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  backdrop-filter: blur(8px);
+}
+
+/* Vertical ascent meter */
+#ascent-meter {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  top: 120px;
+  width: 4px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+#ascent-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: height 0.5s ease;
+  opacity: 0.5;
+}
+
+/* Message/Bridge overlays */
+.modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(8,12,22,0.97);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 28px 32px;
+  min-width: 300px;
+  display: none;
+  z-index: 50;
+  pointer-events: auto;
+  backdrop-filter: blur(20px);
+}
+
+.modal h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.modal p {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.modal-input {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.modal-input:focus { border-color: var(--accent); }
+
+.bridge-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+}
+
+.bridge-option:hover {
+  border-color: var(--accent);
+  background: rgba(79,209,197,0.05);
+}
+
+.bridge-title { font-size: 12px; color: var(--text); }
+.bridge-cost { font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.08em; }
+
+.btn-row { display: flex; gap: 8px; margin-top: 4px; }
+
+.modal-btn {
+  flex: 1;
+  padding: 9px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  transition: all 0.2s;
+}
+
+.modal-btn:hover { background: rgba(255,255,255,0.07); }
+.modal-btn.primary { border-color: var(--accent); color: var(--accent); }
+.modal-btn.primary:hover { background: rgba(79,209,197,0.12); }
+
+/* Death Screen */
+#death-screen {
+  position: absolute;
+  inset: 0;
+  background: rgba(3,5,13,0.97);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+#death-screen h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(48px, 10vw, 80px);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--danger);
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+#death-epitaph {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+  font-family: 'Playfair Display', serif;
+  margin-bottom: 8px;
+}
+
+#death-floor-reached {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 40px;
+  opacity: 0.6;
+}
+
+.death-btn {
+  padding: 12px 40px;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 40px;
+  background: transparent;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.death-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Message notification */
+#msg-notif {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 8px 20px;
+  font-size: 11px;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  color: var(--warm);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s;
+  white-space: nowrap;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Touch controls */
+#touch-left, #touch-right, #touch-jump, #touch-rest {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--muted);
+  transition: background 0.1s;
+  -webkit-user-select: none;
+}
+
+#touch-left:active, #touch-right:active, #touch-jump:active, #touch-rest:active {
+  background: rgba(255,255,255,0.1);
+}
+
+@media (pointer: coarse) {
+  #touch-left, #touch-right, #touch-jump, #touch-rest { display: flex; }
+  #controls-hint { display: none; }
+}
+
+#touch-left  { bottom: 30px; left: 20px;  width: 64px; height: 64px; }
+#touch-right { bottom: 30px; left: 94px; width: 64px; height: 64px; }
+#touch-jump  { bottom: 30px; right: 20px; width: 72px; height: 72px; border-color: rgba(79,209,197,0.2); color: var(--accent); }
+#touch-rest  { bottom: 110px; right: 20px; width: 52px; height: 52px; font-size: 14px; }
+
+/* Floating action hint */
+.action-hint {
+  position: absolute;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  pointer-events: none;
+  opacity: 0;
+  animation: fadeHint 3s forwards;
+}
+
+@keyframes fadeHint {
+  0%{opacity:0;transform:translateY(0)}
+  20%{opacity:1}
+  70%{opacity:1}
+  100%{opacity:0;transform:translateY(-12px)}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<canvas id="game-canvas"></canvas>
+
+<div id="ui">
+
+  <!-- Climber identity -->
+  <div id="climber-id">
+    <span id="id-dot"></span><span id="id-name">LOADING...</span>
+    <div id="id-sub">YOUR LANTERN</div>
+  </div>
+
+  <!-- Tower selector -->
+  <div id="tower-select">
+    <button class="tower-btn active" data-tower="tokyo">TYO</button>
+    <button class="tower-btn" data-tower="paris">PAR</button>
+    <button class="tower-btn" data-tower="toronto">YYZ</button>
+  </div>
+
+  <!-- Top HUD -->
+  <div id="hud-top">
+    <div class="hud-seg">
+      <div class="hud-label">Floor</div>
+      <div class="hud-val accent" id="hud-floor">001</div>
+    </div>
+    <div class="hud-seg">
+      <div class="hud-label">Stamina</div>
+      <div id="stamina-track"><div id="stamina-fill"></div></div>
+      <div class="hud-val" id="hud-stamina">100</div>
+    </div>
+    <div class="hud-seg">
+      <div class="hud-label">Climbers</div>
+      <div class="hud-val warm" id="hud-climbers">1,247</div>
+    </div>
+    <div class="hud-seg">
+      <div class="hud-label">Bridges</div>
+      <div class="hud-val" id="hud-bridges">0</div>
+    </div>
+  </div>
+
+  <!-- Phase -->
+  <div id="phase-pill">The City</div>
+
+  <!-- Ascent meter -->
+  <div id="ascent-meter"><div id="ascent-fill"></div></div>
+
+  <!-- Controls hint -->
+  <div id="controls-hint">A/D Move &nbsp;·&nbsp; Space Jump &nbsp;·&nbsp; Hold R Rest &nbsp;·&nbsp; E Bridge &nbsp;·&nbsp; F Message</div>
+
+  <!-- Touch controls -->
+  <div id="touch-left">◀</div>
+  <div id="touch-right">▶</div>
+  <div id="touch-jump">↑</div>
+  <div id="touch-rest">Z</div>
+
+  <!-- Message notification -->
+  <div id="msg-notif"></div>
+
+  <!-- Message modal -->
+  <div class="modal" id="message-modal">
+    <h3>Leave a Message</h3>
+    <p>Your words outlast you · 50 chars max · costs 5 stamina</p>
+    <input class="modal-input" id="message-input" type="text" maxlength="50" placeholder="What will you carve?">
+    <div class="btn-row">
+      <button class="modal-btn primary" onclick="GAME.submitMessage()">Carve it</button>
+      <button class="modal-btn" onclick="GAME.closeModal('message-modal')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Bridge modal -->
+  <div class="modal" id="bridge-modal">
+    <h3>Build a Bridge</h3>
+    <p>Bridges persist after death · others will use yours</p>
+    <div class="bridge-option" onclick="GAME.buildBridge('plank')">
+      <div>
+        <div class="bridge-title">Wooden Plank</div>
+        <div class="bridge-cost">15 Stamina · 50 uses · Burns amber</div>
+      </div>
+    </div>
+    <div class="bridge-option" onclick="GAME.buildBridge('rope')">
+      <div>
+        <div class="bridge-title">Rope Ladder</div>
+        <div class="bridge-cost">25 Stamina · 100 uses · Sways in wind</div>
+      </div>
+    </div>
+    <div class="bridge-option" onclick="GAME.buildBridge('stone')">
+      <div>
+        <div class="bridge-title">Stone Arch</div>
+        <div class="bridge-cost">40 Stamina · Permanent · Glows gold at 1000 uses</div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="modal-btn" onclick="GAME.closeModal('bridge-modal')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Death screen -->
+  <div id="death-screen">
+    <h1>Fallen</h1>
+    <div id="death-epitaph">"The abyss has a long memory."</div>
+    <div id="death-floor-reached">You reached floor <span id="death-floor-num">1</span></div>
+    <button class="death-btn" onclick="GAME.respawn()">Climb Again</button>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   THE TOWER — CLAUDE'S VERSION
+   Modular Architecture: WORLD | PHYSICS | RENDERER | UI | GAME
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── WORLD REGISTRY ── Every tower is data, not code ── */
+const WORLD = {
+  towers: {
+    tokyo: {
+      name: 'Tokyo Skytree',
+      code: 'TYO',
+      color: '#4fd1c5',
+      secondaryColor: '#c53030',
+      skyGradient: ['#02060f', '#050f1a', '#081520'],
+      buildingPalette: ['#0d1a2e', '#0a1525', '#071020'],
+      windowColor: '#f6ad55',
+      platformColor: '#1a3a4a',
+      platformEdge: '#4fd1c5',
+      latticeColor: 'rgba(79,209,197,0.12)',
+      gravity: 0.48,
+      wind: 0.6,
+    },
+    paris: {
+      name: 'Tour Eiffel',
+      code: 'PAR',
+      color: '#f6ad55',
+      secondaryColor: '#d69e2e',
+      skyGradient: ['#0f070a', '#18090e', '#200c12'],
+      buildingPalette: ['#2a1008', '#1e0a06', '#150705'],
+      windowColor: '#f6e05e',
+      platformColor: '#3a2210',
+      platformEdge: '#f6ad55',
+      latticeColor: 'rgba(246,173,85,0.10)',
+      gravity: 0.46,
+      wind: 0.9,
+    },
+    toronto: {
+      name: 'CN Tower',
+      code: 'YYZ',
+      color: '#63b3ed',
+      secondaryColor: '#4299e1',
+      skyGradient: ['#020810', '#041020', '#061525'],
+      buildingPalette: ['#0a1520', '#0d1a28', '#101f30'],
+      windowColor: '#90cdf4',
+      platformColor: '#0f2030',
+      platformEdge: '#63b3ed',
+      latticeColor: 'rgba(99,179,237,0.10)',
+      gravity: 0.50,
+      wind: 1.1,
+    }
+  },
+
+  phases: [
+    { name: 'The City',       from: 1,    to: 50,   sub: 'Ground level' },
+    { name: 'The Atmosphere', from: 51,   to: 150,  sub: 'Above the clouds' },
+    { name: 'Near Space',     from: 151,  to: 500,  sub: "Earth's curve" },
+    { name: 'The Moon',       from: 501,  to: 1500, sub: 'Lunar orbit' },
+    { name: 'Inner System',   from: 1501, to: 5000, sub: 'Solar winds' },
+    { name: 'The Deep',       from: 5001, to: Infinity, sub: 'Interstellar void' },
+  ],
+
+  getPhase(floor) {
+    return this.phases.find(p => floor >= p.from && floor <= p.to) || this.phases[this.phases.length - 1];
+  },
+
+  epitaphs: [
+    '"Even the void mourns the climbers."',
+    '"A lantern extinguished is a star remembered."',
+    '"Every fall is a lesson carved into the stone."',
+    '"The tower does not count the fallen. It counts the floors."',
+    '"Your bridges remain. Your passage, not."',
+    '"Gravity was patient."',
+  ]
+};
+
+/* ── PHYSICS MODULE ── */
+const PHYSICS = {
+  FLOOR_H: 150,
+  PLATFORM_W_BASE: 320,
+
+  getPlatformWidth(floor) {
+    return Math.max(180, this.PLATFORM_W_BASE - Math.floor(floor / 10));
+  },
+
+  getGravity(floor, towerGravity) {
+    if (floor < 151) return towerGravity;
+    if (floor < 501) return towerGravity * 0.8;
+    if (floor < 1501) return towerGravity * 0.5;
+    return towerGravity * 0.25;
+  }
+};
+
+/* ── IDENTITY SYSTEM ── Persistent climber across deaths ── */
+const IDENTITY = (() => {
+  const adjectives = ['Hollow','Silent','Ashen','Gilded','Ancient','Iron','Storm','Pale','Blind','Swift'];
+  const nouns      = ['Lantern','Climber','Pilgrim','Shadow','Echo','Walker','Watcher','Seer','Bearer','Hand'];
+  const hues       = [0,30,60,120,180,210,240,270,300,330];
+
+  function generate() {
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const hue = hues[Math.floor(Math.random() * hues.length)];
+    const id = `${adj}${noun}${Math.floor(Math.random() * 9000 + 1000)}`;
+    const color = `hsl(${hue}, 70%, 65%)`;
+    return { id, name: `${adj} ${noun}`, color };
+  }
+
+  let identity = null;
+
+  return {
+    get() {
+      if (identity) return identity;
+      try {
+        const saved = localStorage.getItem('tower_identity');
+        identity = saved ? JSON.parse(saved) : generate();
+        localStorage.setItem('tower_identity', JSON.stringify(identity));
+      } catch(e) {
+        identity = generate();
+      }
+      return identity;
+    }
+  };
+})();
+
+/* ── STATE ── Single source of truth ── */
+const STATE = {
+  tower: 'tokyo',
+  floor: 1,
+  stamina: 100,
+  maxStamina: 100,
+  x: 0.5,         // 0–1 normalized position on platform
+  y: 0,           // pixel offset from platform surface (negative = up)
+  vy: 0,
+  onGround: true,
+  isResting: false,
+  facing: 1,
+  dead: false,
+  time: 0,
+  cameraY: 0,
+  messages: [],
+  corpses: [],
+  bridges: [],
+  bridgeCount: 0,
+  particles: [],
+  embers: [],
+  bestFloor: 1,
+  totalBridgesBuilt: 0,
+  jumpBuffered: false,
+  coyoteTime: 0,
+  windOffset: 0,
+  windTarget: 0,
+  ghostPlayers: [],
+
+  load() {
+    try {
+      const s = localStorage.getItem(`tower_state_${this.tower}`);
+      if (!s) return;
+      const d = JSON.parse(s);
+      this.floor = d.floor || 1;
+      this.stamina = d.stamina || 100;
+      this.messages = d.messages || [];
+      this.corpses = d.corpses || [];
+      this.bridges = d.bridges || [];
+      this.bridgeCount = d.bridgeCount || 0;
+      this.bestFloor = d.bestFloor || 1;
+      this.totalBridgesBuilt = d.totalBridgesBuilt || 0;
+    } catch(e) {}
+  },
+
+  save() {
+    try {
+      localStorage.setItem(`tower_state_${this.tower}`, JSON.stringify({
+        floor: this.floor,
+        stamina: this.stamina,
+        messages: this.messages,
+        corpses: this.corpses,
+        bridges: this.bridges,
+        bridgeCount: this.bridgeCount,
+        bestFloor: this.bestFloor,
+        totalBridgesBuilt: this.totalBridgesBuilt
+      }));
+    } catch(e) {}
+  },
+
+  reset() {
+    this.x = 0.5; this.y = 0; this.vy = 0;
+    this.onGround = true; this.dead = false;
+    this.isResting = false; this.embers = [];
+    this.particles = []; this.jumpBuffered = false;
+    this.coyoteTime = 0;
+  }
+};
+
+/* ── RENDERER MODULE ── */
+const RENDERER = (() => {
+  const bgCanvas  = document.getElementById('bg-canvas');
+  const gameCanvas= document.getElementById('game-canvas');
+  const bgCtx     = bgCanvas.getContext('2d');
+  const ctx       = gameCanvas.getContext('2d');
+
+  let W = 0, H = 0;
+
+  // Starfield — generated once
+  const STARS = Array.from({length: 300}, () => ({
+    x: Math.random(), y: Math.random(),
+    r: Math.random() * 1.5 + 0.3,
+    a: Math.random() * 0.7 + 0.2,
+    tw: Math.random() * Math.PI * 2,
+    speed: Math.random() * 0.002 + 0.0005
+  }));
+
+  // City buildings — generated once per tower
+  let buildings = [];
+  function genBuildings() {
+    buildings = Array.from({length: 35}, () => ({
+      x: Math.random(),
+      w: 0.025 + Math.random() * 0.04,
+      h: 0.08 + Math.random() * 0.28,
+      windowRows: Math.floor(Math.random() * 6 + 2)
+    }));
+  }
+
+  function resize() {
+    W = bgCanvas.width = gameCanvas.width = window.innerWidth;
+    H = bgCanvas.height = gameCanvas.height = window.innerHeight;
+  }
+
+  function drawBackground() {
+    const tower = WORLD.towers[STATE.tower];
+    const phase = WORLD.getPhase(STATE.floor);
+    const t = STATE.time;
+
+    // Sky gradient
+    const sky = bgCtx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, tower.skyGradient[0]);
+    sky.addColorStop(0.5, tower.skyGradient[1]);
+    sky.addColorStop(1, tower.skyGradient[2]);
+    bgCtx.fillStyle = sky;
+    bgCtx.fillRect(0, 0, W, H);
+
+    // Stars (fade in as floor increases)
+    const starOpacity = Math.min(1, STATE.floor / 30);
+    STARS.forEach(s => {
+      s.tw += s.speed;
+      const twinkle = Math.sin(s.tw) * 0.3 + 0.7;
+      bgCtx.fillStyle = `rgba(200,215,235,${s.a * twinkle * starOpacity})`;
+      bgCtx.beginPath();
+      bgCtx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
+      bgCtx.fill();
+    });
+
+    // City phase — buildings
+    if (STATE.floor < 60) {
+      const cityFade = Math.max(0, 1 - (STATE.floor - 40) / 20);
+      buildings.forEach(b => {
+        const bx = b.x * W;
+        const bw = b.w * W;
+        const bh = b.h * H;
+        const by = H - bh;
+
+        bgCtx.fillStyle = tower.buildingPalette[Math.floor(b.x * tower.buildingPalette.length)];
+        bgCtx.globalAlpha = cityFade;
+        bgCtx.fillRect(bx, by, bw, bh);
+
+        // Windows
+        const rowH = bh / b.windowRows;
+        for (let row = 0; row < b.windowRows; row++) {
+          const cols = Math.floor(bw / 9);
+          for (let col = 0; col < cols; col++) {
+            if (Math.sin(b.x * 100 + row * 17 + col * 7) > 0.1) {
+              bgCtx.fillStyle = tower.windowColor;
+              bgCtx.globalAlpha = cityFade * (0.2 + Math.sin(t * 0.0005 + row + col) * 0.1 + 0.1);
+              bgCtx.fillRect(bx + col * 9 + 3, by + row * rowH + 5, 5, 7);
+            }
+          }
+        }
+        bgCtx.globalAlpha = 1;
+      });
+    }
+
+    // Near-space earth curve
+    if (STATE.floor >= 151 && STATE.floor < 500) {
+      const fade = Math.min(1, (STATE.floor - 151) / 60);
+      bgCtx.strokeStyle = `rgba(79,209,197,${0.15 * fade})`;
+      bgCtx.lineWidth = 1.5;
+      bgCtx.beginPath();
+      bgCtx.arc(W / 2, H * 2.2, H * 1.8, -Math.PI * 0.85, -Math.PI * 0.15);
+      bgCtx.stroke();
+
+      const atmoGrad = bgCtx.createLinearGradient(0, H * 0.65, 0, H);
+      atmoGrad.addColorStop(0, 'rgba(79,209,197,0)');
+      atmoGrad.addColorStop(1, `rgba(79,209,197,${0.06 * fade})`);
+      bgCtx.fillStyle = atmoGrad;
+      bgCtx.fillRect(0, H * 0.65, W, H * 0.35);
+    }
+
+    // Moon phase
+    if (STATE.floor >= 501 && STATE.floor < 1500) {
+      const fade = Math.min(1, (STATE.floor - 501) / 150);
+      bgCtx.fillStyle = `rgba(200,210,220,${0.06 * fade})`;
+      bgCtx.beginPath();
+      bgCtx.arc(W * 0.15, H * 0.2, H * 0.12, 0, Math.PI * 2);
+      bgCtx.fill();
+      bgCtx.strokeStyle = `rgba(200,210,220,${0.12 * fade})`;
+      bgCtx.lineWidth = 1;
+      bgCtx.stroke();
+    }
+
+    // Vignette — always
+    const vig = bgCtx.createRadialGradient(W/2, H/2, H * 0.2, W/2, H/2, H);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.7)');
+    bgCtx.fillStyle = vig;
+    bgCtx.fillRect(0, 0, W, H);
+  }
+
+  function drawTower() {
+    const tower = WORLD.towers[STATE.tower];
+    const cx = W / 2 + STATE.windOffset * 0.3;
+    const phaseFloor = Math.floor(STATE.cameraY / PHYSICS.FLOOR_H);
+    const visCount = Math.ceil(H / PHYSICS.FLOOR_H) + 3;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Tower wall lattice
+    const towerW = 500;
+    ctx.strokeStyle = tower.latticeColor;
+    ctx.lineWidth = 1;
+
+    for (let i = -1; i < visCount + 1; i++) {
+      const fy = (phaseFloor + i) * PHYSICS.FLOOR_H - STATE.cameraY;
+      const pw = PHYSICS.getPlatformWidth((phaseFloor + i));
+      const halfW = Math.min(towerW / 2, pw * 1.6);
+
+      // Lattice cross-braces
+      for (let j = 0; j < 3; j++) {
+        const y1 = fy + (j / 3) * PHYSICS.FLOOR_H;
+        const y2 = fy + ((j + 1) / 3) * PHYSICS.FLOOR_H;
+        ctx.beginPath();
+        ctx.moveTo(cx - halfW, y1); ctx.lineTo(cx + halfW, y2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx + halfW, y1); ctx.lineTo(cx - halfW, y2);
+        ctx.stroke();
+      }
+    }
+
+    // Platforms + content
+    for (let i = -1; i < visCount + 1; i++) {
+      const floorNum = phaseFloor + i;
+      if (floorNum < 0) continue;
+      const fy = floorNum * PHYSICS.FLOOR_H - STATE.cameraY;
+      const pw = PHYSICS.getPlatformWidth(floorNum);
+      const px = cx - pw / 2;
+
+      if (fy < -PHYSICS.FLOOR_H || fy > H + PHYSICS.FLOOR_H) continue;
+
+      // Platform glow under
+      const glowGrad = ctx.createLinearGradient(px, fy, px, fy + 20);
+      glowGrad.addColorStop(0, tower.platformEdge + '30');
+      glowGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = glowGrad;
+      ctx.fillRect(px, fy, pw, 20);
+
+      // Platform slab
+      ctx.fillStyle = tower.platformColor;
+      ctx.fillRect(px, fy, pw, 10);
+
+      // Platform top edge
+      ctx.fillStyle = tower.platformEdge;
+      ctx.globalAlpha = 0.7;
+      ctx.fillRect(px, fy, pw, 2);
+      ctx.globalAlpha = 1;
+
+      // Floor number on wall
+      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      ctx.font = '9px DM Mono, monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText('F' + floorNum, cx - pw / 2 - 8, fy + 6);
+
+      // Messages on this floor
+      STATE.messages.filter(m => m.floor === floorNum && m.tower === STATE.tower).forEach(m => {
+        const msgX = cx - pw / 2 + m.x * pw;
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = tower.color;
+        ctx.font = 'italic 11px "Playfair Display", serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`"${m.text}"`, msgX, fy - 12);
+        ctx.globalAlpha = 1;
+      });
+
+      // Corpses on this floor
+      STATE.corpses.filter(c => c.floor === floorNum && c.tower === STATE.tower).forEach(c => {
+        const cx2 = cx - pw / 2 + c.x * pw;
+
+        // Fallen figure
+        ctx.strokeStyle = '#742a2a';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        // body lying on ground
+        ctx.beginPath(); ctx.moveTo(cx2 - 10, fy - 1); ctx.lineTo(cx2 + 10, fy - 1); ctx.stroke();
+        // head
+        ctx.fillStyle = '#742a2a';
+        ctx.beginPath(); ctx.arc(cx2 + 12, fy - 3, 4, 0, Math.PI * 2); ctx.fill();
+
+        // Soul glow — rising
+        const soulY = fy - 20 - Math.sin(STATE.time * 0.001 + c.x * 10) * 8;
+        const soulGrad = ctx.createRadialGradient(cx2, soulY, 0, cx2, soulY, 14);
+        soulGrad.addColorStop(0, 'rgba(252,129,129,0.15)');
+        soulGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = soulGrad;
+        ctx.beginPath(); ctx.arc(cx2, soulY, 14, 0, Math.PI * 2); ctx.fill();
+      });
+
+      // Bridges from this floor
+      STATE.bridges.filter(b => b.from === floorNum && b.tower === STATE.tower).forEach(b => {
+        const bx = cx - pw / 2 + b.x * pw;
+        const nextPw = PHYSICS.getPlatformWidth(floorNum + 1);
+        const nextFy = (floorNum + 1) * PHYSICS.FLOOR_H - STATE.cameraY;
+        const nextPx = cx - nextPw / 2;
+        const endX = nextPx + b.x * nextPw;
+
+        const isMine = b.builder === IDENTITY.get().id;
+        const isGold = b.uses >= 1000;
+        const ropeColor = isGold ? '#d4a017' : (isMine ? tower.color : '#8a6a4a');
+
+        if (b.type === 'rope') {
+          const sway = Math.sin(STATE.time * 0.002 + b.x * 5) * 4;
+          ctx.strokeStyle = ropeColor;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 3]);
+          // Two ropes
+          ctx.beginPath(); ctx.moveTo(bx - 8, fy); ctx.lineTo(endX - 8 + sway, nextFy); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(bx + 8, fy); ctx.lineTo(endX + 8 + sway, nextFy); ctx.stroke();
+          ctx.setLineDash([]);
+          // Rungs
+          for (let r = 0; r < 7; r++) {
+            const t2 = r / 7;
+            const rx = bx + t2 * (endX - bx) + sway * t2;
+            const ry = fy + t2 * (nextFy - fy);
+            ctx.fillStyle = ropeColor;
+            ctx.globalAlpha = 0.5;
+            ctx.fillRect(rx - 10, ry - 1, 20, 2);
+            ctx.globalAlpha = 1;
+          }
+        } else if (b.type === 'plank') {
+          ctx.strokeStyle = ropeColor;
+          ctx.lineWidth = 3;
+          ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(bx, fy); ctx.lineTo(endX, nextFy); ctx.stroke();
+          // Planks
+          for (let p = 0; p < 5; p++) {
+            const t2 = p / 5;
+            const ppx = bx + t2 * (endX - bx);
+            const ppy = fy + t2 * (nextFy - fy);
+            ctx.globalAlpha = 0.6;
+            ctx.fillStyle = '#8a5a30';
+            ctx.save();
+            ctx.translate(ppx, ppy);
+            ctx.rotate(Math.atan2(nextFy - fy, endX - bx) + Math.PI / 2);
+            ctx.fillRect(-8, -2, 16, 4);
+            ctx.restore();
+            ctx.globalAlpha = 1;
+          }
+        } else { // stone
+          ctx.strokeStyle = isGold ? '#d4a017' : '#607080';
+          ctx.lineWidth = 5;
+          ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(bx, fy); ctx.lineTo(endX, nextFy); ctx.stroke();
+          if (isGold) {
+            ctx.strokeStyle = 'rgba(212,160,23,0.3)';
+            ctx.lineWidth = 12;
+            ctx.stroke();
+          }
+        }
+
+        // Builder ID tag
+        if (isMine) {
+          ctx.globalAlpha = 0.4;
+          ctx.fillStyle = tower.color;
+          ctx.font = '8px DM Mono, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('YOURS', bx + (endX - bx) / 2, fy + (nextFy - fy) / 2 - 6);
+          ctx.globalAlpha = 1;
+        }
+      });
+
+      // Ghost players
+      STATE.ghostPlayers.filter(g => g.floor === floorNum).forEach(g => {
+        const gx = cx - pw / 2 + g.x * pw;
+        const gy = fy + Math.sin(STATE.time * 0.001 + g.seed) * 2;
+        drawSilhouette(ctx, gx, gy, g.color, 0.35, 1, false);
+      });
+    }
+
+    // ── PLAYER ──
+    if (!STATE.dead) drawPlayer(ctx, cx);
+
+    // ── PARTICLES ──
+    drawParticles(ctx);
+  }
+
+  function drawPlayer(ctx, cx) {
+    const tower = WORLD.towers[STATE.tower];
+    const pw = PHYSICS.getPlatformWidth(STATE.floor);
+    const px = cx - pw / 2 + STATE.x * pw;
+    const floorScreenY = STATE.floor * PHYSICS.FLOOR_H - STATE.cameraY;
+    const py = floorScreenY + STATE.y;
+
+    const identity = IDENTITY.get();
+    const t = STATE.time;
+    const speed = Math.abs(STATE.x - 0.5);
+
+    // Lantern pulsing
+    const pulse = Math.sin(t * 0.004) * 0.12 + 0.88;
+    const lanternX = px + STATE.facing * 14;
+    const lanternY = py - 24;
+    const lanternColor = tower.color;
+
+    // Lantern outer glow
+    for (let r = 60; r >= 10; r -= 10) {
+      const alpha = (0.4 - r / 150) * pulse * 0.8;
+      ctx.fillStyle = `${lanternColor}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
+      ctx.beginPath();
+      ctx.arc(lanternX, lanternY, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Light cone
+    const coneGrad = ctx.createRadialGradient(lanternX, lanternY, 0, lanternX, lanternY, 90);
+    coneGrad.addColorStop(0, `${tower.color}18`);
+    coneGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = coneGrad;
+    ctx.save();
+    ctx.translate(lanternX, lanternY);
+    ctx.rotate(STATE.facing > 0 ? -0.3 : Math.PI + 0.3);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-40, -80);
+    ctx.lineTo(40, -80);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Silhouette
+    drawSilhouette(ctx, px, py, '#e8eef8', 1, STATE.facing, !STATE.onGround);
+
+    // Identity lantern dot
+    ctx.fillStyle = identity.color;
+    ctx.beginPath();
+    ctx.arc(lanternX, lanternY, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Embers
+    if (Math.random() < 0.12) {
+      STATE.embers.push({
+        x: lanternX + (Math.random() - 0.5) * 16,
+        y: lanternY + (Math.random() - 0.5) * 8,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: -Math.random() * 1.5 - 0.5,
+        life: 1, size: Math.random() * 2 + 0.5,
+        color: tower.color
+      });
+    }
+
+    STATE.embers = STATE.embers.filter(e => {
+      e.life -= 0.016;
+      e.x += e.vx + STATE.windOffset * 0.02;
+      e.y += e.vy;
+      e.vy += 0.04;
+      if (e.life <= 0) return false;
+      ctx.globalAlpha = e.life * 0.9;
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.size * e.life, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      return true;
+    });
+  }
+
+  function drawSilhouette(ctx, x, y, color, alpha, facing, airborne) {
+    const t = STATE.time;
+    const legWiggle = airborne ? Math.sin(t * 0.012) * 6 : 0;
+    const bodyLean = facing * 2;
+
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Legs
+    ctx.beginPath();
+    ctx.moveTo(x - 3, y);
+    ctx.lineTo(x - 5 + legWiggle, y + 14);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + 3, y);
+    ctx.lineTo(x + 5 - legWiggle, y + 14);
+    ctx.stroke();
+
+    // Torso
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + bodyLean, y - 22);
+    ctx.stroke();
+
+    // Arms
+    ctx.beginPath();
+    ctx.moveTo(x + bodyLean, y - 16);
+    ctx.lineTo(x + facing * 13, y - 26);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + bodyLean, y - 16);
+    ctx.lineTo(x - facing * 7, y - 22);
+    ctx.stroke();
+
+    // Head
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x + bodyLean + facing * 2, y - 30, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+  }
+
+  function drawParticles(ctx) {
+    STATE.particles = STATE.particles.filter(p => {
+      p.life -= 0.025;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.1;
+      if (p.life <= 0) return false;
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      return true;
+    });
+  }
+
+  function spawnParticles(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 3 + 1;
+      STATE.particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        life: 1,
+        r: Math.random() * 3 + 1,
+        color
+      });
+    }
+  }
+
+  return {
+    get W() { return W; },
+    get H() { return H; },
+    resize() { resize(); genBuildings(); },
+    drawBackground,
+    drawTower,
+    spawnParticles
+  };
+})();
+
+/* ── UI MODULE ── */
+const UI = (() => {
+  const elFloor    = document.getElementById('hud-floor');
+  const elStamina  = document.getElementById('hud-stamina');
+  const elStamFill = document.getElementById('stamina-fill');
+  const elBridges  = document.getElementById('hud-bridges');
+  const elPhase    = document.getElementById('phase-pill');
+  const elAscentF  = document.getElementById('ascent-fill');
+  const elMsgNotif = document.getElementById('msg-notif');
+  let notifTimeout = null;
+
+  function update() {
+    const phase = WORLD.getPhase(STATE.floor);
+    elFloor.textContent = STATE.floor.toString().padStart(3, '0');
+    elBridges.textContent = STATE.bridgeCount;
+    elPhase.textContent = phase.name;
+
+    const st = Math.round(STATE.stamina);
+    elStamina.textContent = st;
+    elStamFill.style.width = st + '%';
+    elStamFill.style.background = st < 20 ? '#fc8181' : st < 45 ? '#f6ad55' : WORLD.towers[STATE.tower].color;
+    elStamina.className = 'hud-val ' + (st < 20 ? 'danger' : st < 45 ? 'warm' : '');
+
+    const maxFloor = 1000;
+    elAscentF.style.height = Math.min(100, (STATE.floor / maxFloor) * 100) + '%';
+
+    // Stamina vignette warning
+    const vig = document.getElementById('vig-overlay');
+    if (vig) {
+      vig.style.opacity = st < 20 ? (0.15 + Math.sin(Date.now() * 0.008) * 0.1).toString() : '0';
+    }
+  }
+
+  function showNotif(text, duration = 4000) {
+    elMsgNotif.textContent = text;
+    elMsgNotif.style.opacity = '1';
+    clearTimeout(notifTimeout);
+    notifTimeout = setTimeout(() => { elMsgNotif.style.opacity = '0'; }, duration);
+  }
+
+  function showDeath(floor) {
+    const epitaph = WORLD.epitaphs[Math.floor(Math.random() * WORLD.epitaphs.length)];
+    document.getElementById('death-epitaph').textContent = epitaph;
+    document.getElementById('death-floor-num').textContent = floor;
+    document.getElementById('death-screen').style.display = 'flex';
+  }
+
+  function hideDeath() {
+    document.getElementById('death-screen').style.display = 'none';
+  }
+
+  function setupIdentity() {
+    const id = IDENTITY.get();
+    document.getElementById('id-dot').style.background = id.color;
+    document.getElementById('id-name').textContent = id.name.toUpperCase();
+    document.getElementById('id-sub').textContent = id.id;
+  }
+
+  return { update, showNotif, showDeath, hideDeath, setupIdentity };
+})();
+
+/* ── INPUT MODULE ── */
+const INPUT = (() => {
+  const keys = {};
+
+  function init() {
+    window.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      if (e.code === 'Space') { e.preventDefault(); STATE.jumpBuffered = true; }
+      if (e.code === 'KeyE' && !STATE.dead) GAME.openModal('bridge-modal');
+      if (e.code === 'KeyF' && !STATE.dead) GAME.openModal('message-modal');
+    });
+    window.addEventListener('keyup', e => {
+      keys[e.code] = false;
+      if (e.code === 'Space') STATE.jumpBuffered = false;
+    });
+
+    // Touch controls
+    const bindTouch = (id, downFn, upFn) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('touchstart', e => { e.preventDefault(); downFn && downFn(); }, {passive: false});
+      el.addEventListener('touchend',   e => { e.preventDefault(); upFn   && upFn();   }, {passive: false});
+      el.addEventListener('mousedown',  e => { downFn && downFn(); });
+      el.addEventListener('mouseup',    e => { upFn   && upFn();   });
+    };
+
+    bindTouch('touch-left',  () => keys['KeyA'] = true,  () => keys['KeyA'] = false);
+    bindTouch('touch-right', () => keys['KeyD'] = true,  () => keys['KeyD'] = false);
+    bindTouch('touch-jump',  () => { STATE.jumpBuffered = true; },
+                             () => { STATE.jumpBuffered = false; });
+    bindTouch('touch-rest',  () => keys['KeyR'] = true,  () => keys['KeyR'] = false);
+  }
+
+  function isDown(code) { return !!keys[code]; }
+  function isLeft()  { return isDown('KeyA') || isDown('ArrowLeft'); }
+  function isRight() { return isDown('KeyD') || isDown('ArrowRight'); }
+  function isRest()  { return isDown('KeyR'); }
+
+  return { init, isLeft, isRight, isRest };
+})();
+
+/* ── GHOST PLAYERS — Simulated ── */
+function spawnGhostPlayers() {
+  STATE.ghostPlayers = [];
+  const colors = ['#63b3ed', '#68d391', '#f6ad55', '#a0aec0', '#fc8181', '#d6bcfa'];
+  const count = 4 + Math.floor(Math.random() * 5);
+  for (let i = 0; i < count; i++) {
+    const floorOffset = Math.floor(Math.random() * 10) - 3;
+    STATE.ghostPlayers.push({
+      floor: Math.max(1, STATE.floor + floorOffset),
+      x: 0.1 + Math.random() * 0.8,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      seed: Math.random() * 100
+    });
+  }
+}
+
+/* ── MAIN GAME MODULE ── */
+const GAME = (() => {
+  function update() {
+    if (STATE.dead) return;
+
+    const dt = 1;
+    STATE.time += 16;
+
+    // Wind drift
+    if (Math.random() < 0.01) STATE.windTarget = (Math.random() - 0.5) * 20;
+    STATE.windOffset += (STATE.windTarget - STATE.windOffset) * 0.005;
+
+    // Horizontal movement
+    const speed = 0.004;
+    if (INPUT.isLeft())  { STATE.x -= speed; STATE.facing = -1; }
+    if (INPUT.isRight()) { STATE.x += speed; STATE.facing = 1; }
+    STATE.x = Math.max(0.02, Math.min(0.98, STATE.x));
+
+    // Gravity
+    const gravity = PHYSICS.getGravity(STATE.floor, WORLD.towers[STATE.tower].gravity);
+
+    // Coyote time
+    if (STATE.onGround) STATE.coyoteTime = 8;
+    else if (STATE.coyoteTime > 0) STATE.coyoteTime--;
+
+    // Jump with buffering + coyote
+    if (STATE.jumpBuffered && STATE.coyoteTime > 0) {
+      const jumpPower = STATE.floor < 501 ? 11 : STATE.floor < 1501 ? 8.5 : 6;
+      STATE.vy = -jumpPower;
+      STATE.onGround = false;
+      STATE.coyoteTime = 0;
+      STATE.jumpBuffered = false;
+      STATE.stamina = Math.max(0, STATE.stamina - 1.5);
+      RENDERER.spawnParticles(
+        RENDERER.W / 2 + (STATE.x - 0.5) * PHYSICS.getPlatformWidth(STATE.floor),
+        STATE.floor * PHYSICS.FLOOR_H - STATE.cameraY,
+        WORLD.towers[STATE.tower].color, 6
+      );
+    }
+
+    // Apply gravity + position
+    if (!STATE.onGround) {
+      STATE.vy += gravity;
+      STATE.y += STATE.vy;
+    }
+
+    // Land detection
+    if (STATE.y >= 0) {
+      if (!STATE.onGround && STATE.vy > 4) {
+        // Hard landing particles
+        RENDERER.spawnParticles(
+          RENDERER.W / 2 + (STATE.x - 0.5) * PHYSICS.getPlatformWidth(STATE.floor),
+          STATE.floor * PHYSICS.FLOOR_H - STATE.cameraY,
+          '#4a5568', 8
+        );
+      }
+      STATE.y = 0;
+      STATE.vy = 0;
+      STATE.onGround = true;
+    }
+
+    // Resting
+    STATE.isResting = INPUT.isRest();
+
+    // Stamina drain / recover
+    if (STATE.isResting) {
+      STATE.stamina = Math.min(STATE.maxStamina, STATE.stamina + 0.25);
+    } else {
+      STATE.stamina = Math.max(0, STATE.stamina - 0.012);
+    }
+
+    // Exhaustion death
+    if (STATE.stamina <= 0) {
+      die('Exhaustion claimed you at floor ' + STATE.floor + '.');
+      return;
+    }
+
+    // Check if near right edge → advance floor
+    if (STATE.x > 0.92 && STATE.onGround && !STATE.jumpBuffered) {
+      // Trigger bridge build prompt if gap exists
+      const hasBridge = STATE.bridges.some(b =>
+        b.from === STATE.floor && b.tower === STATE.tower
+      );
+      if (!hasBridge) {
+        // Show hint occasionally
+        if (STATE.time % 300 < 10) {
+          UI.showNotif('No bridge here. Build one? Press E.');
+        }
+      }
+    }
+
+    // Camera smooth follow
+    const targetCam = STATE.floor * PHYSICS.FLOOR_H - RENDERER.H * 0.65 + STATE.y;
+    STATE.cameraY += (targetCam - STATE.cameraY) * 0.1;
+
+    // Update ghost player floors occasionally
+    if (STATE.time % 8000 < 20) spawnGhostPlayers();
+
+    // Check nearby messages
+    if (STATE.time % 2000 < 20) {
+      const nearby = STATE.messages.find(m =>
+        m.floor === STATE.floor && m.tower === STATE.tower &&
+        Math.abs(m.x - STATE.x) < 0.3
+      );
+      if (nearby) UI.showNotif(`"${nearby.text}"`);
+    }
+
+    // Check nearby corpse
+    if (STATE.time % 3000 < 20) {
+      const nearCorpse = STATE.corpses.find(c =>
+        c.floor === STATE.floor && c.tower === STATE.tower &&
+        Math.abs(c.x - STATE.x) < 0.25
+      );
+      if (nearCorpse) UI.showNotif(`You found ${nearCorpse.builder || 'a climber'}'s remains.`);
+    }
+
+    // Update best floor
+    if (STATE.floor > STATE.bestFloor) STATE.bestFloor = STATE.floor;
+
+    UI.update();
+
+    // Auto-save periodically
+    if (STATE.time % 15000 < 20) STATE.save();
+  }
+
+  function die(reason) {
+    STATE.dead = true;
+
+    // Leave corpse
+    STATE.corpses.push({
+      floor: STATE.floor,
+      x: STATE.x,
+      tower: STATE.tower,
+      builder: IDENTITY.get().name,
+      reason
+    });
+
+    STATE.save();
+    UI.showDeath(STATE.floor);
+  }
+
+  function respawn() {
+    UI.hideDeath();
+    STATE.floor = 1;
+    STATE.stamina = 100;
+    STATE.reset();
+    STATE.cameraY = 0;
+    STATE.load(); // Reload bridges/messages
+    spawnGhostPlayers();
+    UI.showNotif('Your bridges remain. Your legacy endures.');
+  }
+
+  function submitMessage() {
+    const val = document.getElementById('message-input').value.trim();
+    if (!val) return;
+    if (STATE.stamina < 5) { UI.showNotif('Not enough stamina to carve a message.'); closeModal('message-modal'); return; }
+    STATE.messages.push({ floor: STATE.floor, x: STATE.x, tower: STATE.tower, text: val });
+    STATE.stamina -= 5;
+    STATE.save();
+    closeModal('message-modal');
+    document.getElementById('message-input').value = '';
+    UI.showNotif('"' + val + '" — carved into the tower forever.');
+  }
+
+  function buildBridge(type) {
+    const costs = { plank: 15, rope: 25, stone: 40 };
+    const maxUses = { plank: 50, rope: 100, stone: 9999999 };
+    const cost = costs[type];
+    if (STATE.stamina < cost) {
+      UI.showNotif('Not enough stamina for that bridge.');
+      closeModal('bridge-modal');
+      return;
+    }
+    STATE.stamina -= cost;
+    STATE.bridges.push({
+      from: STATE.floor,
+      tower: STATE.tower,
+      x: STATE.x,
+      type,
+      uses: 0,
+      maxUses: maxUses[type],
+      builder: IDENTITY.get().id,
+      builderName: IDENTITY.get().name
+    });
+    STATE.bridgeCount++;
+    STATE.totalBridgesBuilt++;
+    STATE.save();
+    closeModal('bridge-modal');
+    UI.showNotif(`${type === 'plank' ? 'Wooden plank' : type === 'rope' ? 'Rope ladder' : 'Stone arch'} built. Others will use this.`);
+
+    // Advance floor if built connection
+    setTimeout(() => {
+      STATE.floor++;
+      STATE.y = 0;
+      STATE.vy = 0;
+      STATE.onGround = true;
+      UI.showNotif(`Floor ${STATE.floor}. Keep climbing.`);
+      spawnGhostPlayers();
+    }, 500);
+  }
+
+  function openModal(id) {
+    closeAllModals();
+    document.getElementById(id).style.display = 'block';
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+  }
+
+  function closeAllModals() {
+    ['message-modal', 'bridge-modal'].forEach(id => closeModal(id));
+  }
+
+  function switchTower(name) {
+    STATE.save();
+    STATE.tower = name;
+    STATE.reset();
+    STATE.floor = 1;
+    STATE.stamina = 100;
+    STATE.cameraY = 0;
+    STATE.bridges = [];
+    STATE.messages = [];
+    STATE.corpses = [];
+    STATE.bridgeCount = 0;
+    STATE.load();
+    RENDERER.resize();
+    spawnGhostPlayers();
+    UI.showNotif(`Now climbing ${WORLD.towers[name].name}.`);
+    document.querySelectorAll('.tower-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tower === name);
+    });
+  }
+
+  function loop() {
+    update();
+    RENDERER.drawBackground();
+    RENDERER.drawTower();
+    requestAnimationFrame(loop);
+  }
+
+  function init() {
+    RENDERER.resize();
+    window.addEventListener('resize', () => RENDERER.resize());
+    INPUT.init();
+
+    // Tower buttons
+    document.querySelectorAll('.tower-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTower(btn.dataset.tower));
+    });
+
+    // Identity click (show tooltip)
+    document.getElementById('climber-id').addEventListener('click', () => {
+      const id = IDENTITY.get();
+      UI.showNotif(`You are ${id.name}. Your mark is on ${STATE.bridgeCount} bridges.`);
+    });
+
+    // Close modals on backdrop click
+    window.addEventListener('keydown', e => {
+      if (e.code === 'Escape') GAME.closeAllModals();
+    });
+
+    // Init
+    STATE.load();
+    UI.setupIdentity();
+    spawnGhostPlayers();
+    UI.showNotif('The tower has no top. Climb.');
+
+    loop();
+  }
+
+  return { init, update, die, respawn, openModal, closeModal, closeAllModals, submitMessage, buildBridge };
+})();
+
+// Add stamina vignette overlay
+const vigEl = document.createElement('div');
+vigEl.id = 'vig-overlay';
+vigEl.style.cssText = `
+  position:fixed;inset:0;z-index:9;pointer-events:none;
+  box-shadow:inset 0 0 120px rgba(252,129,129,0.4);
+  opacity:0;transition:opacity 0.3s;
+`;
+document.body.appendChild(vigEl);
+
+// Start
+GAME.init();
+</script>
+</body>
+</html>
