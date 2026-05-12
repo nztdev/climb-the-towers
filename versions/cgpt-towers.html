@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>THE TOWER — Enhanced Build</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+background:#050810;
+overflow:hidden;
+font-family:Inter,system-ui,sans-serif;
+color:#fff;
+}
+canvas{
+position:absolute;
+inset:0;
+}
+#ui{
+position:absolute;
+inset:0;
+pointer-events:none;
+}
+#minimal-ui{
+position:absolute;
+top:20px;
+left:20px;
+display:flex;
+flex-direction:column;
+gap:8px;
+}
+.ui-card{
+background:rgba(10,15,25,.45);
+border:1px solid rgba(255,255,255,.08);
+backdrop-filter:blur(10px);
+padding:10px 14px;
+border-radius:14px;
+}
+#floor{
+font-size:20px;
+font-weight:700;
+}
+#phase{
+font-size:12px;
+opacity:.7;
+letter-spacing:1px;
+text-transform:uppercase;
+}
+#stamina-ring{
+position:absolute;
+right:24px;
+top:24px;
+width:70px;
+height:70px;
+border-radius:50%;
+border:6px solid rgba(255,255,255,.08);
+}
+#stamina-fill{
+position:absolute;
+inset:0;
+border-radius:50%;
+border:6px solid #63b3ed;
+clip-path:polygon(50% 50%,0 0,100% 0,100% 100%,0 100%);
+}
+#hint{
+position:absolute;
+bottom:20px;
+left:50%;
+transform:translateX(-50%);
+font-size:12px;
+opacity:.4;
+}
+.fade-phase{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+font-size:40px;
+letter-spacing:8px;
+opacity:0;
+animation:phasefade 4s ease;
+pointer-events:none;
+}
+@keyframes phasefade{
+0%{opacity:0;transform:translate(-50%,-40%)}
+20%{opacity:.7}
+80%{opacity:.7}
+100%{opacity:0;transform:translate(-50%,-60%)}
+}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<canvas id="game"></canvas>
+<div id="ui">
+<div id="minimal-ui">
+<div class="ui-card">
+<div id="floor">FLOOR 1</div>
+<div id="phase">THE CITY</div>
+</div>
+</div>
+<div id="stamina-ring">
+<div id="stamina-fill"></div>
+</div>
+<div id="hint">A/D Move • Space Jump • Hold R Rest</div>
+</div>
+<script>
+const bg = document.getElementById('bg');
+const game = document.getElementById('game');
+const bgx = bg.getContext('2d');
+const ctx = game.getContext('2d');
+
+let w,h;
+function resize(){
+w=bg.width=game.width=window.innerWidth;
+h=bg.height=game.height=window.innerHeight;
+}
+resize();
+window.addEventListener('resize',resize);
+
+const FLOOR_HEIGHT = 160;
+const PLATFORM_WIDTH = 320;
+const tower_width = 420;
+
+const state={
+floor:1,
+x:.5,
+y:0,
+vy:0,
+onGround:true,
+stamina:100,
+phase:'THE CITY',
+time:0,
+lantern:'#f6ad55',
+echoes:[],
+bridges:[],
+relics:[],
+messages:[],
+wind:0,
+shake:0,
+lastGrounded:0,
+jumpBuffer:0
+};
+
+const keys={};
+window.addEventListener('keydown',e=>{
+keys[e.key.toLowerCase()]=true;
+if(e.code==='Space') state.jumpBuffer=8;
+});
+window.addEventListener('keyup',e=>{
+keys[e.key.toLowerCase()]=false;
+});
+
+function getPhase(f){
+if(f<50)return 'THE CITY';
+if(f<150)return 'THE ATMOSPHERE';
+if(f<500)return 'NEAR SPACE';
+if(f<1000)return 'LUNAR ASCENT';
+if(f<5000)return 'OUTER VOID';
+return 'THE DEEP';
+}
+
+const stars=[];
+for(let i=0;i<400;i++){
+stars.push({
+x:Math.random()*2-1,
+y:Math.random(),
+r:Math.random()*2,
+a:Math.random()
+});
+}
+
+function drawBackground(){
+bgx.fillStyle='#04070d';
+bgx.fillRect(0,0,w,h);
+
+for(const s of stars){
+const tw=Math.sin(state.time*.001+s.x*5)*.5+.5;
+bgx.fillStyle=`rgba(255,255,255,${s.a*tw})`;
+bgx.beginPath();
+bgx.arc((s.x*.5+.5)*w,s.y*h,s.r,0,Math.PI*2);
+bgx.fill();
+}
+
+const grad=bgx.createLinearGradient(0,h,0,0);
+grad.addColorStop(0,'rgba(30,60,90,.2)');
+grad.addColorStop(1,'rgba(0,0,0,0)');
+bgx.fillStyle=grad;
+bgx.fillRect(0,0,w,h);
+}
+
+function drawTower(){
+ctx.clearRect(0,0,w,h);
+
+const cx=w/2+Math.sin(state.time*.0002)*state.wind;
+
+ctx.strokeStyle='rgba(100,200,255,.15)';
+ctx.lineWidth=3;
+ctx.beginPath();
+ctx.moveTo(cx-tower_width/2,0);
+ctx.lineTo(cx-tower_width/3,h);
+ctx.stroke();
+ctx.beginPath();
+ctx.moveTo(cx+tower_width/2,0);
+ctx.lineTo(cx+tower_width/3,h);
+ctx.stroke();
+
+for(let i=-2;i<12;i++){
+const fy=h-(i*FLOOR_HEIGHT)+(state.floor%1)*FLOOR_HEIGHT;
+const pw=Math.max(120,PLATFORM_WIDTH-state.floor*.03);
+
+ctx.fillStyle='rgba(40,55,75,.95)';
+ctx.fillRect(cx-pw/2,fy,pw,10);
+
+ctx.fillStyle='rgba(120,220,255,.15)';
+ctx.fillRect(cx-pw/2,fy-2,pw,2);
+
+if(state.floor>200){
+ctx.strokeStyle='rgba(255,255,255,.03)';
+ctx.strokeRect(cx-pw/2,fy,pw,10);
+}
+}
+
+const px=cx+(state.x-.5)*220;
+const py=h*.65+state.y;
+
+const lanternPulse=Math.sin(state.time*.005)*8+30;
+
+const glow=ctx.createRadialGradient(px,py-30,0,px,py-30,lanternPulse);
+glow.addColorStop(0,'rgba(255,200,120,.35)');
+glow.addColorStop(1,'rgba(255,200,120,0)');
+ctx.fillStyle=glow;
+ctx.beginPath();
+ctx.arc(px,py-30,lanternPulse,0,Math.PI*2);
+ctx.fill();
+
+ctx.strokeStyle='#f1f5f9';
+ctx.lineWidth=3;
+ctx.beginPath();
+ctx.moveTo(px,py);
+ctx.lineTo(px,py-24);
+ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(px,py-18);
+ctx.lineTo(px+12,py-28);
+ctx.stroke();
+
+ctx.fillStyle='#fff';
+ctx.beginPath();
+ctx.arc(px,py-32,6,0,Math.PI*2);
+ctx.fill();
+
+ctx.fillStyle=state.lantern;
+ctx.beginPath();
+ctx.arc(px+14,py-28,4,0,Math.PI*2);
+ctx.fill();
+
+for(const e of state.echoes){
+ctx.globalAlpha=.15;
+ctx.strokeStyle='#8ab4ff';
+ctx.beginPath();
+ctx.moveTo(e.x,e.y);
+ctx.lineTo(e.x,e.y-20);
+ctx.stroke();
+ctx.globalAlpha=1;
+}
+}
+
+function update(){
+state.time+=16;
+state.phase=getPhase(state.floor);
+
+if(keys['a']) state.x-=.004;
+if(keys['d']) state.x+=.004;
+
+state.x=Math.max(.1,Math.min(.9,state.x));
+
+if(state.onGround){
+state.lastGrounded=8;
+}else{
+state.lastGrounded--;
+}
+
+if(state.jumpBuffer>0) state.jumpBuffer--;
+
+if(state.jumpBuffer>0 && state.lastGrounded>0){
+state.vy=-11;
+state.onGround=false;
+state.jumpBuffer=0;
+state.lastGrounded=0;
+state.stamina-=1.5;
+}
+
+state.vy+=.5;
+state.y+=state.vy;
+
+if(state.y>0){
+if(!state.onGround) state.shake=8;
+state.y=0;
+state.vy=0;
+state.onGround=true;
+}else{
+state.onGround=false;
+}
+
+if(keys['r']){
+state.stamina=Math.min(100,state.stamina+.2);
+}else{
+state.stamina=Math.max(0,state.stamina-.01);
+}
+
+if(state.x>.88 && state.onGround){
+state.floor+=.02;
+}
+
+state.wind=Math.min(20,state.floor*.002);
+
+if(Math.random()<.003){
+state.echoes.push({
+x:Math.random()*w,
+y:Math.random()*h
+});
+}
+
+if(state.echoes.length>40) state.echoes.shift();
+
+if(state.floor>5000){
+ctx.globalAlpha=.97;
+}
+
+state.shake*=.9;
+
+updateUI();
+}
+
+function updateUI(){
+document.getElementById('floor').textContent='FLOOR '+Math.floor(state.floor);
+document.getElementById('phase').textContent=state.phase;
+document.getElementById('stamina-fill').style.transform=`scale(${state.stamina/100})`;
+}
+
+function loop(){
+update();
+drawBackground();
+drawTower();
+requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
+```
