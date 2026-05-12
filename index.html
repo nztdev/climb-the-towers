@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE TOWER | Multiverse Portal</title>
+    <style>
+        :root {
+            --bg: #050810;
+            --card-bg: rgba(13, 17, 23, 0.7);
+            --accent-gemini: #4fd1c5;
+            --accent-kimi: #f6ad55;
+            --accent-gpt: #a0aec0;
+            --text: #e2e8f0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Animated Starfield Background */
+        .stars {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            z-index: -1;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 3rem;
+            letter-spacing: 0.5rem;
+            font-weight: 200;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            background: linear-gradient(to bottom, #fff, #64748b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            color: #718096;
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+        }
+
+        /* Grid System */
+        .portal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            width: 90%;
+            max-width: 1000px;
+            z-index: 1;
+        }
+
+        /* Modular Version Cards */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px 30px;
+            text-align: center;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(20, 26, 35, 0.9);
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 4px;
+            background: var(--accent);
+        }
+
+        /* Variant Colors */
+        .gemini { --accent: var(--accent-gemini); }
+        .kimi { --accent: var(--accent-kimi); }
+        .gpt { --accent: var(--accent-gpt); }
+
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        .card span {
+            display: block;
+            font-size: 0.8rem;
+            color: #718096;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 24px;
+            border: 1px solid var(--accent);
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent);
+            transition: all 0.3s;
+        }
+
+        .card:hover .btn {
+            background: var(--accent);
+            color: #000;
+        }
+
+        footer {
+            margin-top: 50px;
+            font-size: 0.7rem;
+            color: #4a5568;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="stars"></div>
+
+    <header>
+        <h1>THE TOWER</h1>
+        <p>MULTIVERSE ACCESS PORTAL</p>
+    </header>
+
+    <div class="portal-grid">
+        
+        <a href="versions/gemini-towers.html" class="card gemini">
+            <h2>GEMINI</h2>
+            <span>Modular architecture with atmospheric scaling and fluid humanoid physics.</span>
+            <div class="btn">ENTER ASCENT</div>
+        </a>
+
+        <a href="versions/kimi-towers.html" class="card kimi">
+            <h2>KIMI</h2>
+            <span>Alternative logic and visual interpretation of the Tower climb.</span>
+            <div class="btn">ENTER ASCENT</div>
+        </a>
+
+        <a href="versions/cgpt-towers.html" class="card gpt">
+            <h2>CHATGPT</h2>
+            <span>The baseline architectural foundation of the climbing experience.</span>
+            <div class="btn">ENTER ASCENT</div>
+        </a>
+
+    </div>
+
+    <footer>
+        &copy; 2026 THE TOWER PROJECT // ETERNAL ASCENT
+    </footer>
+
+</body>
+</html>
