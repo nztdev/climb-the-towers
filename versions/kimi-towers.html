@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE TOWER - Infinite Climb</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #050810;
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #bg-canvas {
+            z-index: 1;
+        }
+
+        #game-canvas {
+            z-index: 2;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        #ui-layer > * {
+            pointer-events: auto;
+        }
+
+        /* Top Bar */
+        #top-bar {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            right: 20px;
+            height: 50px;
+            background: rgba(13, 17, 23, 0.9);
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            padding: 0 25px;
+            gap: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        #tower-name {
+            font-family: 'Georgia', serif;
+            font-size: 20px;
+            font-weight: bold;
+            color: #e2e8f0;
+            min-width: 180px;
+        }
+
+        .stat-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #4fd1c5;
+        }
+
+        .stat-value.warning {
+            color: #f6ad55;
+        }
+
+        .stat-value.danger {
+            color: #fc8181;
+        }
+
+        #stamina-bar-container {
+            width: 100px;
+            height: 8px;
+            background: #2d3748;
+            border-radius: 4px;
+            margin-top: 2px;
+            overflow: hidden;
+        }
+
+        #stamina-bar {
+            height: 100%;
+            background: #63b3ed;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* Height Meter */
+        #height-meter {
+            position: absolute;
+            right: 15px;
+            top: 80px;
+            bottom: 80px;
+            width: 35px;
+            background: rgba(13, 17, 23, 0.8);
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #height-fill {
+            position: absolute;
+            bottom: 0;
+            left: 2px;
+            right: 2px;
+            background: #63b3ed;
+            border-radius: 4px;
+            transition: height 0.3s ease;
+        }
+
+        .height-marker {
+            position: absolute;
+            right: 45px;
+            font-size: 10px;
+            color: #4a5568;
+            transform: translateY(50%);
+        }
+
+        /* Tower Selector */
+        #tower-selector {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tower-btn {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #2d3748;
+            border-radius: 8px;
+            background: rgba(13, 17, 23, 0.9);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tower-btn:hover {
+            border-color: #4fd1c5;
+            transform: scale(1.1);
+        }
+
+        .tower-btn.active {
+            border-color: #4fd1c5;
+            box-shadow: 0 0 15px rgba(79, 209, 197, 0.3);
+        }
+
+        .tower-btn .tooltip {
+            position: absolute;
+            left: 60px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(13, 17, 23, 0.95);
+            border: 1px solid #2d3748;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+
+        .tower-btn:hover .tooltip {
+            opacity: 1;
+        }
+
+        /* Controls Hint */
+        #controls {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: #4a5568;
+            background: rgba(5, 8, 16, 0.8);
+            padding: 8px 20px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        /* Message Input */
+        #message-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(13, 17, 23, 0.95);
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            padding: 25px;
+            display: none;
+            z-index: 100;
+        }
+
+        #message-modal h3 {
+            font-family: 'Georgia', serif;
+            margin-bottom: 15px;
+            color: #e2e8f0;
+        }
+
+        #message-input {
+            width: 300px;
+            padding: 10px;
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-family: inherit;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        #message-input:focus {
+            outline: none;
+            border-color: #4fd1c5;
+        }
+
+        .modal-btn {
+            padding: 8px 20px;
+            background: #2d3748;
+            border: 1px solid #4a5568;
+            border-radius: 6px;
+            color: #e2e8f0;
+            cursor: pointer;
+            font-family: inherit;
+            margin-right: 10px;
+            transition: all 0.2s;
+        }
+
+        .modal-btn:hover {
+            background: #4fd1c5;
+            color: #1a202c;
+        }
+
+        /* Bridge Build Modal */
+        #bridge-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(13, 17, 23, 0.95);
+            border: 1px solid #2d3748;
+            border-radius: 12px;
+            padding: 25px;
+            display: none;
+            z-index: 100;
+        }
+
+        #bridge-modal h3 {
+            font-family: 'Georgia', serif;
+            margin-bottom: 15px;
+        }
+
+        .bridge-option {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #1a202c;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .bridge-option:hover {
+            background: #2d3748;
+            border: 1px solid #4fd1c5;
+        }
+
+        .bridge-icon {
+            font-size: 24px;
+        }
+
+        .bridge-info {
+            flex: 1;
+        }
+
+        .bridge-name {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .bridge-cost {
+            font-size: 11px;
+            color: #718096;
+        }
+
+        /* Death Screen */
+        #death-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 8, 16, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        #death-screen h1 {
+            font-family: 'Georgia', serif;
+            font-size: 48px;
+            color: #fc8181;
+            margin-bottom: 20px;
+        }
+
+        #death-screen .final-floor {
+            font-size: 24px;
+            color: #e2e8f0;
+            margin-bottom: 10px;
+        }
+
+        #death-screen .final-message {
+            font-size: 16px;
+            color: #718096;
+            font-style: italic;
+            margin-bottom: 30px;
+        }
+
+        #respawn-btn {
+            padding: 12px 40px;
+            background: #4fd1c5;
+            border: none;
+            border-radius: 8px;
+            color: #1a202c;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #respawn-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(79, 209, 197, 0.4);
+        }
+
+        /* Corpse popup */
+        .corpse-popup {
+            position: absolute;
+            background: rgba(13, 17, 23, 0.95);
+            border: 1px solid #742a2a;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 11px;
+            color: #c9b99a;
+            pointer-events: none;
+            z-index: 50;
+            display: none;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Phase indicator */
+        #phase-indicator {
+            position: absolute;
+            top: 80px;
+            right: 60px;
+            text-align: right;
+        }
+
+        #phase-name {
+            font-size: 12px;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #phase-sub {
+            font-size: 10px;
+            color: #4a5568;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="bg-canvas"></canvas>
+        <canvas id="game-canvas"></canvas>
+
+        <div id="ui-layer">
+            <!-- Top Bar -->
+            <div id="top-bar">
+                <div id="tower-name">▲ TOKYO SKYTREE</div>
+                <div class="stat-group">
+                    <span class="stat-label">Floor</span>
+                    <span class="stat-value" id="floor-display">1</span>
+                </div>
+                <div class="stat-group">
+                    <span class="stat-label">Stamina</span>
+                    <div id="stamina-bar-container">
+                        <div id="stamina-bar" style="width: 100%"></div>
+                    </div>
+                    <span class="stat-value" id="stamina-text">100%</span>
+                </div>
+                <div class="stat-group">
+                    <span class="stat-label">Bridges</span>
+                    <span class="stat-value" id="bridges-display">0</span>
+                </div>
+                <div class="stat-group">
+                    <span class="stat-label">Climbers</span>
+                    <span class="stat-value" id="climbers-display">1,247</span>
+                </div>
+                <div class="stat-group">
+                    <span class="stat-label">Time</span>
+                    <span class="stat-value" id="time-display">00:00</span>
+                </div>
+            </div>
+
+            <!-- Phase Indicator -->
+            <div id="phase-indicator">
+                <div id="phase-name">The City</div>
+                <div id="phase-sub">Tokyo, Japan</div>
+            </div>
+
+            <!-- Tower Selector -->
+            <div id="tower-selector">
+                <div class="tower-btn active" data-tower="tokyo" title="Tokyo Skytree">
+                    🗼
+                    <span class="tooltip">Tokyo Skytree, Japan</span>
+                </div>
+                <div class="tower-btn" data-tower="paris" title="Eiffel Tower">
+                    🗼
+                    <span class="tooltip">Eiffel Tower, France</span>
+                </div>
+                <div class="tower-btn" data-tower="toronto" title="CN Tower">
+                    🗼
+                    <span class="tooltip">CN Tower, Canada</span>
+                </div>
+            </div>
+
+            <!-- Height Meter -->
+            <div id="height-meter">
+                <div id="height-fill" style="height: 0%"></div>
+            </div>
+            <div class="height-marker" style="bottom: 10%">F100</div>
+            <div class="height-marker" style="bottom: 30%">F300</div>
+            <div class="height-marker" style="bottom: 50%">F500</div>
+            <div class="height-marker" style="bottom: 70%">F700</div>
+            <div class="height-marker" style="bottom: 90%">F900</div>
+
+            <!-- Controls -->
+            <div id="controls">
+                [WASD] Move • [SPACE] Jump/Climb • [E] Build Bridge • [F] Leave Message • [R] Rest
+            </div>
+
+            <!-- Message Modal -->
+            <div id="message-modal">
+                <h3>Leave a Message</h3>
+                <input type="text" id="message-input" maxlength="50" placeholder="Your words will outlast you...">
+                <div>
+                    <button class="modal-btn" onclick="submitMessage()">Carve</button>
+                    <button class="modal-btn" onclick="closeMessageModal()">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Bridge Modal -->
+            <div id="bridge-modal">
+                <h3>Build a Bridge</h3>
+                <div class="bridge-option" onclick="buildBridge('wood')">
+                    <span class="bridge-icon">🪵</span>
+                    <div class="bridge-info">
+                        <div class="bridge-name">Wooden Plank</div>
+                        <div class="bridge-cost">Cost: 15 Stamina • Lasts: 50 uses</div>
+                    </div>
+                </div>
+                <div class="bridge-option" onclick="buildBridge('rope')">
+                    <span class="bridge-icon">🪢</span>
+                    <div class="bridge-info">
+                        <div class="bridge-name">Rope Ladder</div>
+                        <div class="bridge-cost">Cost: 25 Stamina • Lasts: 100 uses</div>
+                    </div>
+                </div>
+                <div class="bridge-option" onclick="buildBridge('stone')">
+                    <span class="bridge-icon">🪨</span>
+                    <div class="bridge-info">
+                        <div class="bridge-name">Stone Arch</div>
+                        <div class="bridge-cost">Cost: 40 Stamina • Permanent</div>
+                    </div>
+                </div>
+                <button class="modal-btn" onclick="closeBridgeModal()" style="margin-top: 10px;">Cancel</button>
+            </div>
+
+            <!-- Death Screen -->
+            <div id="death-screen">
+                <h1>YOU FELL</h1>
+                <div class="final-floor">Floor <span id="death-floor">1</span></div>
+                <div class="final-message" id="death-message">"The abyss remembers."</div>
+                <button id="respawn-btn" onclick="respawn()">Climb Again</button>
+            </div>
+
+            <!-- Corpse Popup -->
+            <div class="corpse-popup" id="corpse-popup"></div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== GAME ENGINE ====================
+
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const bgCanvas = document.getElementById('bg-canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+
+        let width, height;
+        function resize() {
+            width = canvas.width = bgCanvas.width = window.innerWidth;
+            height = canvas.height = bgCanvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // ==================== TOWER DEFINITIONS ====================
+
+        const TOWERS = {
+            tokyo: {
+                name: 'TOKYO SKYTREE',
+                country: 'Japan',
+                city: 'Tokyo',
+                color: '#4fd1c5',
+                accent: '#c53030',
+                bgType: 'city',
+                landmark: { x: 0.75, y: 0.85, height: 0.15, color: '#c53030' },
+                buildingColors: ['#1a1a2e', '#16213e', '#0f3460'],
+                windowColor: '#f6ad55',
+                skyColor: '#0a0a1a',
+                latticeColor: '#4fd1c5'
+            },
+            paris: {
+                name: 'EIFFEL TOWER',
+                country: 'France',
+                city: 'Paris',
+                color: '#f6ad55',
+                accent: '#d69e2e',
+                bgType: 'city',
+                landmark: { x: 0.2, y: 0.8, height: 0.2, color: '#d69e2e' },
+                buildingColors: ['#2d1b14', '#3d2418', '#1a0f0a'],
+                windowColor: '#f6e05e',
+                skyColor: '#0f0a1a',
+                latticeColor: '#f6ad55'
+            },
+            toronto: {
+                name: 'CN TOWER',
+                country: 'Canada',
+                city: 'Toronto',
+                color: '#63b3ed',
+                accent: '#4299e1',
+                bgType: 'city',
+                landmark: { x: 0.5, y: 0.75, height: 0.25, color: '#4299e1' },
+                buildingColors: ['#1a202c', '#2d3748', '#171923'],
+                windowColor: '#90cdf4',
+                skyColor: '#0a0f1a',
+                latticeColor: '#63b3ed'
+            }
+        };
+
+        let currentTower = 'tokyo';
+
+        // ==================== GAME STATE ====================
+
+        const state = {
+            floor: 1,
+            stamina: 100,
+            maxStamina: 100,
+            bridges: 0,
+            x: 0.5, // 0-1 position on platform
+            y: 0, // vertical offset within floor
+            vy: 0,
+            onGround: true,
+            facing: 1, // 1 = right, -1 = left
+            isResting: false,
+            dead: false,
+            messages: [], // {floor, x, text, author}
+            corpses: [], // {floor, x, message, author}
+            bridgesBuilt: [], // {from, to, x, type, uses, maxUses}
+            otherPlayers: [], // Simulated
+            camera: { y: 0 },
+            particles: [],
+            embers: [],
+            time: 0
+        };
+
+        // Load from localStorage
+        function loadState() {
+            const saved = localStorage.getItem('tower_save_' + currentTower);
+            if (saved) {
+                const data = JSON.parse(saved);
+                state.floor = data.floor || 1;
+                state.stamina = data.stamina || 100;
+                state.bridges = data.bridges || 0;
+                state.messages = data.messages || [];
+                state.corpses = data.corpses || [];
+                state.bridgesBuilt = data.bridgesBuilt || [];
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('tower_save_' + currentTower, JSON.stringify({
+                floor: state.floor,
+                stamina: state.stamina,
+                bridges: state.bridges,
+                messages: state.messages,
+                corpses: state.corpses,
+                bridgesBuilt: state.bridgesBuilt
+            }));
+        }
+
+        // ==================== PHASE SYSTEM ====================
+
+        function getPhase(floor) {
+            if (floor <= 50) return { name: 'The City', sub: TOWERS[currentTower].city + ', ' + TOWERS[currentTower].country, bgType: 'city' };
+            if (floor <= 100) return { name: 'The Atmosphere', sub: 'Above the clouds', bgType: 'sky' };
+            if (floor <= 200) return { name: 'Near Space', sub: "Earth's curve visible", bgType: 'nearspace' };
+            if (floor <= 500) return { name: 'The Moon', sub: 'Lunar orbit', bgType: 'moon' };
+            if (floor <= 1000) return { name: 'Inner System', sub: 'Mars, Venus, Mercury', bgType: 'innersystem' };
+            if (floor <= 5000) return { name: 'Outer System', sub: 'Jupiter, Saturn, Uranus, Neptune', bgType: 'outersystem' };
+            return { name: 'The Deep', sub: 'Interstellar space', bgType: 'deep' };
+        }
+
+        // ==================== BACKGROUND RENDERING ====================
+
+        const stars = [];
+        for (let i = 0; i < 200; i++) {
+            stars.push({
+                x: Math.random(),
+                y: Math.random(),
+                size: Math.random() * 2 + 0.5,
+                alpha: Math.random() * 0.8 + 0.2,
+                twinkle: Math.random() * Math.PI * 2
+            });
+        }
+
+        const cityBuildings = [];
+        for (let i = 0; i < 30; i++) {
+            cityBuildings.push({
+                x: Math.random(),
+                width: 0.02 + Math.random() * 0.04,
+                height: 0.1 + Math.random() * 0.25,
+                windows: Math.random() > 0.3
+            });
+        }
+
+        function drawBackground() {
+            const tower = TOWERS[currentTower];
+            const phase = getPhase(state.floor);
+
+            bgCtx.fillStyle = phase.bgType === 'city' ? tower.skyColor : '#050810';
+            bgCtx.fillRect(0, 0, width, height);
+
+            // Stars (all phases)
+            stars.forEach(star => {
+                const twinkle = Math.sin(state.time * 0.001 + star.twinkle) * 0.3 + 0.7;
+                bgCtx.fillStyle = `rgba(226, 232, 240, ${star.alpha * twinkle})`;
+                bgCtx.beginPath();
+                bgCtx.arc(star.x * width, star.y * height, star.size, 0, Math.PI * 2);
+                bgCtx.fill();
+            });
+
+            if (phase.bgType === 'city') {
+                // City skyline
+                cityBuildings.forEach(b => {
+                    const bx = b.x * width;
+                    const bw = b.width * width;
+                    const bh = b.height * height;
+                    const by = height - bh;
+
+                    bgCtx.fillStyle = tower.buildingColors[Math.floor(Math.random() * tower.buildingColors.length)];
+                    bgCtx.fillRect(bx, by, bw, bh);
+
+                    if (b.windows) {
+                        for (let wy = by + 10; wy < height - 5; wy += 15) {
+                            for (let wx = bx + 5; wx < bx + bw - 3; wx += 12) {
+                                if (Math.random() > 0.4) {
+                                    bgCtx.fillStyle = tower.windowColor;
+                                    bgCtx.globalAlpha = Math.random() * 0.6 + 0.2;
+                                    bgCtx.fillRect(wx, wy, 3, 4);
+                                    bgCtx.globalAlpha = 1;
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Real-world landmark tower
+                const lm = tower.landmark;
+                const lmx = lm.x * width;
+                const lmy = lm.y * height;
+                const lmh = lm.height * height;
+
+                // Landmark glow
+                for (let r = 50; r > 0; r -= 10) {
+                    bgCtx.fillStyle = lm.color;
+                    bgCtx.globalAlpha = 0.02;
+                    bgCtx.beginPath();
+                    bgCtx.arc(lmx, lmy - lmh/2, r, 0, Math.PI * 2);
+                    bgCtx.fill();
+                }
+                bgCtx.globalAlpha = 1;
+
+                // Simple landmark drawing
+                bgCtx.strokeStyle = lm.color;
+                bgCtx.lineWidth = 3;
+                bgCtx.beginPath();
+                bgCtx.moveTo(lmx - 8, lmy);
+                bgCtx.lineTo(lmx - 4, lmy - lmh * 0.7);
+                bgCtx.lineTo(lmx, lmy - lmh);
+                bgCtx.lineTo(lmx + 4, lmy - lmh * 0.7);
+                bgCtx.lineTo(lmx + 8, lmy);
+                bgCtx.stroke();
+
+                // Antenna
+                bgCtx.beginPath();
+                bgCtx.moveTo(lmx, lmy - lmh);
+                bgCtx.lineTo(lmx, lmy - lmh - 20);
+                bgCtx.stroke();
+                bgCtx.fillStyle = '#ff0000';
+                bgCtx.beginPath();
+                bgCtx.arc(lmx, lmy - lmh - 20, 3, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+
+            if (phase.bgType === 'sky') {
+                // Clouds below
+                bgCtx.fillStyle = 'rgba(200, 210, 230, 0.1)';
+                for (let i = 0; i < 5; i++) {
+                    const cx = (Math.sin(state.time * 0.0001 + i) * 0.5 + 0.5) * width;
+                    const cy = height * 0.8 + Math.sin(i) * 50;
+                    bgCtx.beginPath();
+                    bgCtx.arc(cx, cy, 100 + i * 30, 0, Math.PI * 2);
+                    bgCtx.fill();
+                }
+            }
+
+            if (phase.bgType === 'nearspace') {
+                // Earth curve
+                bgCtx.strokeStyle = 'rgba(79, 209, 197, 0.3)';
+                bgCtx.lineWidth = 2;
+                bgCtx.beginPath();
+                bgCtx.arc(width/2, height * 2, height * 1.5, -Math.PI * 0.8, -Math.PI * 0.2);
+                bgCtx.stroke();
+
+                // Atmosphere glow
+                const grad = bgCtx.createLinearGradient(0, height * 0.6, 0, height);
+                grad.addColorStop(0, 'rgba(79, 209, 197, 0)');
+                grad.addColorStop(1, 'rgba(79, 209, 197, 0.1)');
+                bgCtx.fillStyle = grad;
+                bgCtx.fillRect(0, height * 0.6, width, height * 0.4);
+            }
+
+            if (phase.bgType === 'moon') {
+                // Moon surface below
+                bgCtx.fillStyle = 'rgba(200, 200, 210, 0.1)';
+                bgCtx.beginPath();
+                bgCtx.arc(width/2, height * 1.5, 400, 0, Math.PI * 2);
+                bgCtx.fill();
+
+                // Craters
+                bgCtx.fillStyle = 'rgba(150, 150, 160, 0.1)';
+                bgCtx.beginPath();
+                bgCtx.arc(width * 0.4, height * 1.3, 50, 0, Math.PI * 2);
+                bgCtx.fill();
+                bgCtx.beginPath();
+                bgCtx.arc(width * 0.6, height * 1.4, 80, 0, Math.PI * 2);
+                bgCtx.fill();
+            }
+
+            // Vignette
+            const vig = bgCtx.createRadialGradient(width/2, height/2, height * 0.3, width/2, height/2, height * 0.8);
+            vig.addColorStop(0, 'rgba(0,0,0,0)');
+            vig.addColorStop(1, 'rgba(0,0,0,0.5)');
+            bgCtx.fillStyle = vig;
+            bgCtx.fillRect(0, 0, width, height);
+        }
+
+        // ==================== GAME RENDERING ====================
+
+        const FLOOR_HEIGHT = 140;
+        const PLATFORM_WIDTH = 360;
+        const GAP_HEIGHT = 130;
+
+        function drawTower() {
+            const tower = TOWERS[currentTower];
+            const centerX = width / 2;
+            const visibleFloors = Math.ceil(height / FLOOR_HEIGHT) + 2;
+            const startFloor = Math.floor(state.camera.y / FLOOR_HEIGHT);
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw visible floors
+            for (let i = -1; i < visibleFloors; i++) {
+                const floorNum = startFloor + i;
+                const floorY = floorNum * FLOOR_HEIGHT - state.camera.y;
+
+                if (floorY < -FLOOR_HEIGHT || floorY > height + FLOOR_HEIGHT) continue;
+
+                // Wall structure
+                const wallLeft = centerX - tower_width/2;
+                const wallRight = centerX + tower_width/2;
+
+                // Lattice pattern
+                ctx.strokeStyle = 'rgba(45, 55, 72, 0.3)';
+                ctx.lineWidth = 1;
+                for (let j = 0; j < 3; j++) {
+                    const y1 = floorY + j * 47;
+                    const y2 = floorY + (j + 1) * 47;
+                    ctx.beginPath();
+                    ctx.moveTo(wallLeft, y1);
+                    ctx.lineTo(wallRight, y2);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(wallRight, y1);
+                    ctx.lineTo(wallLeft, y2);
+                    ctx.stroke();
+                }
+
+                // Platform
+                const platformWidth = Math.max(200, PLATFORM_WIDTH - floorNum * 2);
+                const platformX = centerX - platformWidth / 2;
+
+                ctx.fillStyle = '#2d3748';
+                ctx.fillRect(platformX, floorY, platformWidth, 10);
+                ctx.strokeStyle = tower.color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(platformX, floorY, platformWidth, 10);
+
+                // Platform glow
+                ctx.fillStyle = tower.color;
+                ctx.globalAlpha = 0.1;
+                ctx.fillRect(platformX, floorY - 3, platformWidth, 3);
+                ctx.globalAlpha = 1;
+
+                // Floor number
+                ctx.fillStyle = '#4a5568';
+                ctx.font = '10px monospace';
+                ctx.fillText(`F${floorNum}`, wallLeft - 35, floorY + 5);
+
+                // Messages on this floor
+                state.messages.filter(m => m.floor === floorNum).forEach(m => {
+                    const msgX = platformX + m.x * platformWidth;
+                    ctx.fillStyle = tower.color;
+                    ctx.globalAlpha = 0.5;
+                    ctx.font = 'italic 11px serif';
+                    ctx.fillText(`"${m.text}"`, msgX, floorY - 15);
+                    ctx.globalAlpha = 1;
+                });
+
+                // Corpses on this floor
+                state.corpses.filter(c => c.floor === floorNum).forEach(c => {
+                    const corpseX = platformX + c.x * platformWidth;
+                    ctx.strokeStyle = '#742a2a';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(corpseX - 8, floorY);
+                    ctx.lineTo(corpseX + 8, floorY);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(corpseX, floorY);
+                    ctx.lineTo(corpseX + 5, floorY + 10);
+                    ctx.stroke();
+                    ctx.fillStyle = '#742a2a';
+                    ctx.beginPath();
+                    ctx.arc(corpseX + 5, floorY + 14, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                // Bridges from this floor
+                state.bridgesBuilt.filter(b => b.from === floorNum).forEach(b => {
+                    const startX = platformX + b.x * platformWidth;
+                    const endY = (floorNum + 1) * FLOOR_HEIGHT - state.camera.y;
+                    const endX = startX + (b.to - floorNum) * 40;
+
+                    if (b.type === 'rope') {
+                        // Rope ladder
+                        ctx.strokeStyle = '#c05621';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(startX - 12, floorY);
+                        ctx.lineTo(endX - 12, endY);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(startX + 12, floorY);
+                        ctx.lineTo(endX + 12, endY);
+                        ctx.stroke();
+
+                        for (let r = 0; r < 8; r++) {
+                            const ry = floorY + r * (endY - floorY) / 8;
+                            ctx.fillStyle = '#ed8936';
+                            ctx.fillRect(startX - 14, ry - 1, 28, 2);
+                        }
+                    } else {
+                        // Wooden bridge
+                        ctx.strokeStyle = '#a08060';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(startX, floorY);
+                        ctx.lineTo(endX, endY);
+                        ctx.stroke();
+
+                        for (let p = 0; p < 6; p++) {
+                            const t = p / 5;
+                            const px = startX + t * (endX - startX);
+                            const py = floorY + t * (endY - floorY);
+                            ctx.fillStyle = '#8b6914';
+                            ctx.fillRect(px - 6, py - 2, 12, 4);
+                        }
+                    }
+                });
+
+                // Other players (simulated)
+                state.otherPlayers.filter(p => p.floor === floorNum).forEach(p => {
+                    const px = platformX + p.x * platformWidth;
+                    ctx.strokeStyle = p.color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(px, floorY);
+                    ctx.lineTo(px, floorY - 20);
+                    ctx.stroke();
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(px, floorY - 25, 5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Their light
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = 0.1;
+                    ctx.beginPath();
+                    ctx.arc(px + 8, floorY - 20, 20, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                });
+            }
+
+            // Draw player
+            const playerFloorY = state.floor * FLOOR_HEIGHT - state.camera.y;
+            const platformWidth = Math.max(200, PLATFORM_WIDTH - state.floor * 2);
+            const platformX = centerX - platformWidth / 2;
+            const playerScreenX = platformX + state.x * platformWidth;
+            const playerScreenY = playerFloorY + state.y;
+
+            if (!state.dead) {
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                ctx.beginPath();
+                ctx.ellipse(playerScreenX, playerScreenY, 10, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Body
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+
+                // Legs
+                const legOffset = state.onGround ? 0 : Math.sin(state.time * 0.01) * 5;
+                ctx.beginPath();
+                ctx.moveTo(playerScreenX - 4, playerScreenY);
+                ctx.lineTo(playerScreenX - 6 + legOffset, playerScreenY + 15);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(playerScreenX + 4, playerScreenY);
+                ctx.lineTo(playerScreenX + 6 - legOffset, playerScreenY + 15);
+                ctx.stroke();
+
+                // Torso
+                ctx.beginPath();
+                ctx.moveTo(playerScreenX, playerScreenY);
+                ctx.lineTo(playerScreenX + state.facing * 2, playerScreenY - 22);
+                ctx.stroke();
+
+                // Arms
+                ctx.beginPath();
+                ctx.moveTo(playerScreenX + state.facing * 2, playerScreenY - 18);
+                ctx.lineTo(playerScreenX + state.facing * 12, playerScreenY - 28);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(playerScreenX + state.facing * 2, playerScreenY - 18);
+                ctx.lineTo(playerScreenX - state.facing * 8, playerScreenY - 25);
+                ctx.stroke();
+
+                // Head
+                ctx.fillStyle = '#e2e8f0';
+                ctx.beginPath();
+                ctx.arc(playerScreenX + state.facing * 3, playerScreenY - 30, 7, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Lantern
+                const lanternX = playerScreenX + state.facing * 14;
+                const lanternY = playerScreenY - 24;
+
+                ctx.fillStyle = '#f6ad55';
+                ctx.beginPath();
+                ctx.arc(lanternX, lanternY, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Lantern glow (pulsing)
+                const pulse = Math.sin(state.time * 0.003) * 0.1 + 0.9;
+                for (let r = 10; r <= 60; r += 10) {
+                    ctx.fillStyle = '#f6ad55';
+                    ctx.globalAlpha = (0.4 - r/150) * pulse;
+                    ctx.beginPath();
+                    ctx.arc(lanternX, lanternY, r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+
+                // Light cone
+                ctx.fillStyle = 'rgba(246, 173, 85, 0.03)';
+                ctx.beginPath();
+                ctx.moveTo(lanternX, lanternY);
+                ctx.lineTo(lanternX - 40, lanternY - 80);
+                ctx.lineTo(lanternX + 40, lanternY - 80);
+                ctx.closePath();
+                ctx.fill();
+
+                // Embers
+                state.embers.forEach((ember, i) => {
+                    ember.y -= 0.5;
+                    ember.x += Math.sin(ember.y * 0.05) * 0.3;
+                    ember.life -= 0.01;
+
+                    if (ember.life > 0) {
+                        ctx.fillStyle = `rgba(251, 211, 141, ${ember.life})`;
+                        ctx.beginPath();
+                        ctx.arc(ember.x, ember.y, ember.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+                state.embers = state.embers.filter(e => e.life > 0);
+
+                // Spawn new embers
+                if (Math.random() < 0.1) {
+                    state.embers.push({
+                        x: lanternX + (Math.random() - 0.5) * 20,
+                        y: lanternY + (Math.random() - 0.5) * 10,
+                        size: Math.random() * 2 + 1,
+                        life: 1
+                    });
+                }
+            }
+        }
+
+        // ==================== PHYSICS & INPUT ====================
+
+        const keys = {};
+        window.addEventListener('keydown', e => {
+            keys[e.key.toLowerCase()] = true;
+
+            if (e.key === ' ' && !state.dead) {
+                e.preventDefault();
+                if (state.onGround) {
+                    state.vy = -12;
+                    state.onGround = false;
+                    state.stamina -= 2;
+                }
+            }
+
+            if (e.key.toLowerCase() === 'e' && !state.dead) {
+                openBridgeModal();
+            }
+
+            if (e.key.toLowerCase() === 'f' && !state.dead) {
+                openMessageModal();
+            }
+
+            if (e.key.toLowerCase() === 'r' && !state.dead) {
+                state.isResting = true;
+            }
+        });
+
+        window.addEventListener('keyup', e => {
+            keys[e.key.toLowerCase()] = false;
+            if (e.key.toLowerCase() === 'r') {
+                state.isResting = false;
+            }
+        });
+
+        function updatePhysics() {
+            if (state.dead) return;
+
+            const platformWidth = Math.max(200, PLATFORM_WIDTH - state.floor * 2);
+            const platformX = width/2 - platformWidth/2;
+
+            // Horizontal movement
+            const speed = 0.003;
+            if (keys['a'] || keys['arrowleft']) {
+                state.x -= speed;
+                state.facing = -1;
+            }
+            if (keys['d'] || keys['arrowright']) {
+                state.x += speed;
+                state.facing = 1;
+            }
+
+            // Clamp to platform
+            state.x = Math.max(0.05, Math.min(0.95, state.x));
+
+            // Vertical physics
+            if (!state.onGround) {
+                state.vy += 0.5; // Gravity
+                state.y += state.vy;
+
+                // Check landing
+                if (state.y >= 0) {
+                    state.y = 0;
+                    state.vy = 0;
+                    state.onGround = true;
+                }
+
+                // Check if fell off platform
+                const playerScreenX = platformX + state.x * platformWidth;
+                if (playerScreenX < platformX || playerScreenX > platformX + platformWidth) {
+                    if (state.y > 10) {
+                        die("Fell into the abyss");
+                        return;
+                    }
+                }
+            }
+
+            // Check bridge collisions for climbing up
+            const nextFloorY = (state.floor + 1) * FLOOR_HEIGHT - state.camera.y;
+            const currentFloorY = state.floor * FLOOR_HEIGHT - state.camera.y;
+
+            state.bridgesBuilt.forEach(bridge => {
+                if (bridge.from === state.floor) {
+                    // Check if player is on bridge
+                    const bridgeStartX = platformX + bridge.x * platformWidth;
+                    const bridgeEndX = bridgeStartX + (bridge.to - bridge.from) * 40;
+                    const playerScreenX = platformX + state.x * platformWidth;
+
+                    if (Math.abs(playerScreenX - bridgeStartX) < 20 && state.y < -50) {
+                        // Climbing bridge
+                        state.floor++;
+                        state.y = 0;
+                        state.vy = 0;
+                        state.onGround = true;
+                        bridge.uses++;
+
+                        if (bridge.uses >= bridge.maxUses) {
+                            // Bridge breaks
+                            state.bridgesBuilt = state.bridgesBuilt.filter(b => b !== bridge);
+                        }
+                    }
+                }
+            });
+
+            // Stamina
+            if (state.isResting) {
+                state.stamina = Math.min(state.maxStamina, state.stamina + 0.3);
+            } else {
+                state.stamina = Math.max(0, state.stamina - 0.02);
+            }
+
+            if (state.stamina <= 0 && !state.isResting) {
+                die("Exhaustion claimed you");
+                return;
+            }
+
+            // Camera follow
+            const targetCamY = state.floor * FLOOR_HEIGHT - height * 0.7;
+            state.camera.y += (targetCamY - state.camera.y) * 0.1;
+
+            // Update UI
+            updateUI();
+        }
+
+        function die(reason) {
+            state.dead = true;
+            state.corpses.push({
+                floor: state.floor,
+                x: state.x,
+                message: reason,
+                author: 'You'
+            });
+            saveState();
+
+            document.getElementById('death-floor').textContent = state.floor;
+            document.getElementById('death-message').textContent = `"${reason}"`;
+            document.getElementById('death-screen').style.display = 'flex';
+        }
+
+        function respawn() {
+            state.floor = 1;
+            state.stamina = 100;
+            state.x = 0.5;
+            state.y = 0;
+            state.vy = 0;
+            state.onGround = true;
+            state.dead = false;
+            state.isResting = false;
+            document.getElementById('death-screen').style.display = 'none';
+            saveState();
+        }
+
+        // ==================== UI FUNCTIONS ====================
+
+        function updateUI() {
+            document.getElementById('floor-display').textContent = state.floor;
+            document.getElementById('stamina-text').textContent = Math.round(state.stamina) + '%';
+            document.getElementById('stamina-bar').style.width = state.stamina + '%';
+            document.getElementById('bridges-display').textContent = state.bridges;
+
+            const phase = getPhase(state.floor);
+            document.getElementById('phase-name').textContent = phase.name;
+            document.getElementById('phase-sub').textContent = phase.sub;
+
+            // Height meter
+            const heightPercent = Math.min(100, (state.floor / 1000) * 100);
+            document.getElementById('height-fill').style.height = heightPercent + '%';
+
+            // Time
+            const now = new Date();
+            document.getElementById('time-display').textContent = 
+                now.getHours().toString().padStart(2, '0') + ':' + 
+                now.getMinutes().toString().padStart(2, '0');
+
+            // Stamina color
+            const staminaText = document.getElementById('stamina-text');
+            const staminaBar = document.getElementById('stamina-bar');
+            if (state.stamina < 20) {
+                staminaText.className = 'stat-value danger';
+                staminaBar.style.background = '#fc8181';
+            } else if (state.stamina < 50) {
+                staminaText.className = 'stat-value warning';
+                staminaBar.style.background = '#f6ad55';
+            } else {
+                staminaText.className = 'stat-value';
+                staminaBar.style.background = '#63b3ed';
+            }
+        }
+
+        function openMessageModal() {
+            document.getElementById('message-modal').style.display = 'block';
+            document.getElementById('message-input').focus();
+        }
+
+        function closeMessageModal() {
+            document.getElementById('message-modal').style.display = 'none';
+            document.getElementById('message-input').value = '';
+        }
+
+        function submitMessage() {
+            const text = document.getElementById('message-input').value.trim();
+            if (text) {
+                state.messages.push({
+                    floor: state.floor,
+                    x: state.x,
+                    text: text,
+                    author: 'You'
+                });
+                state.stamina -= 5;
+                saveState();
+            }
+            closeMessageModal();
+        }
+
+        function openBridgeModal() {
+            document.getElementById('bridge-modal').style.display = 'block';
+        }
+
+        function closeBridgeModal() {
+            document.getElementById('bridge-modal').style.display = 'none';
+        }
+
+        function buildBridge(type) {
+            const costs = { wood: 15, rope: 25, stone: 40 };
+            const uses = { wood: 50, rope: 100, stone: 999999 };
+
+            if (state.stamina >= costs[type]) {
+                state.stamina -= costs[type];
+                state.bridges++;
+                state.bridgesBuilt.push({
+                    from: state.floor,
+                    to: state.floor + 1,
+                    x: state.x,
+                    type: type,
+                    uses: 0,
+                    maxUses: uses[type]
+                });
+                saveState();
+            }
+            closeBridgeModal();
+        }
+
+        // ==================== TOWER SWITCHING ====================
+
+        document.querySelectorAll('.tower-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tower-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                currentTower = btn.dataset.tower;
+                const tower = TOWERS[currentTower];
+                document.getElementById('tower-name').textContent = '▲ ' + tower.name;
+
+                loadState();
+                updateUI();
+            });
+        });
+
+        // ==================== SIMULATED OTHER PLAYERS ====================
+
+        function spawnOtherPlayers() {
+            // Simulate a few other players on nearby floors
+            state.otherPlayers = [];
+            for (let i = -2; i <= 5; i++) {
+                if (Math.random() < 0.3) {
+                    state.otherPlayers.push({
+                        floor: state.floor + i,
+                        x: Math.random(),
+                        color: ['#63b3ed', '#68d391', '#f6ad55', '#a0aec0'][Math.floor(Math.random() * 4)]
+                    });
+                }
+            }
+        }
+
+        // Spawn other players periodically
+        setInterval(spawnOtherPlayers, 5000);
+        spawnOtherPlayers();
+
+        // ==================== GAME LOOP ====================
+
+        function gameLoop() {
+            state.time += 16;
+
+            drawBackground();
+            drawTower();
+            updatePhysics();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ==================== INIT ====================
+
+        loadState();
+        updateUI();
+        gameLoop();
+
+        // Initial save
+        saveState();
+    </script>
+</body>
+</html>
