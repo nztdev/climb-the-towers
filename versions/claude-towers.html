@@ -5,1638 +5,1596 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>THE TOWER — Eternal Ascent</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap');
 
 :root {
-  --void: #03050d;
-  --ink: #0a0f1e;
-  --panel: rgba(8,12,22,0.88);
-  --border: rgba(255,255,255,0.06);
-  --text: #c8d4e8;
-  --muted: #4a5568;
-  --accent: #4fd1c5;
-  --warm: #f6ad55;
-  --danger: #fc8181;
+  --void:#02040c;--ink:#07091a;--panel:rgba(6,9,20,0.92);--border:rgba(255,255,255,0.07);
+  --text:#c4d0e8;--muted:#3d4f6b;--accent:#4fd1c5;--warm:#f6ad55;--danger:#fc8181;--gold:#d4a637;
 }
-
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--void)}
+body{font-family:'DM Mono',monospace;color:var(--text);user-select:none}
+canvas{position:absolute;top:0;left:0;display:block}
+#bg-canvas{z-index:1}
+#game-canvas{z-index:2}
 
-body {
-  background: var(--void);
-  color: var(--text);
-  font-family: 'DM Mono', monospace;
-  overflow: hidden;
-  width: 100vw;
-  height: 100dvh;
-  user-select: none;
-}
+/* ══ INTRO ══ */
+#intro{position:fixed;inset:0;z-index:200;background:#02040c;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.intro-screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 1s ease;pointer-events:none;padding:40px}
+.intro-screen.active{opacity:1;pointer-events:auto}
 
-canvas {
-  position: absolute;
-  top: 0; left: 0;
-  display: block;
-}
+/* Screen 1 – lore */
+.lore-line{font-family:'Cormorant Garamond',serif;font-size:clamp(18px,3.5vw,32px);font-weight:300;font-style:italic;color:var(--text);letter-spacing:0.05em;text-align:center;opacity:0;transform:translateY(8px);transition:opacity 1.2s ease,transform 1.2s ease;margin:6px 0}
+.lore-line.show{opacity:1;transform:none}
+.intro-skip{position:absolute;bottom:30px;right:30px;font-size:11px;color:var(--muted);letter-spacing:0.15em;cursor:pointer;transition:color 0.2s}
+.intro-skip:hover{color:var(--text)}
 
-#bg-canvas { z-index: 1; }
-#game-canvas { z-index: 2; }
+/* Screen 2 – name */
+.intro-label{font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);margin-bottom:18px}
+.intro-title{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,5vw,52px);font-weight:300;font-style:italic;color:var(--text);margin-bottom:40px;text-align:center}
+.intro-input{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.2);color:var(--text);font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;font-style:italic;text-align:center;padding:8px 20px;width:300px;outline:none;transition:border-color 0.3s}
+.intro-input:focus{border-color:rgba(255,255,255,0.5)}
+.intro-input::placeholder{color:var(--muted)}
 
-/* ── UI LAYER ── */
-#ui {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  pointer-events: none;
-}
+/* Lantern swatches */
+.lantern-row{display:flex;gap:16px;margin:32px 0}
+.lantern-swatch{width:36px;height:36px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all 0.25s;position:relative}
+.lantern-swatch.sel{border-color:#fff;transform:scale(1.2)}
+.lantern-swatch::after{content:'';position:absolute;inset:-6px;border-radius:50%;background:inherit;opacity:0.25;filter:blur(8px);transition:opacity 0.25s}
+.lantern-swatch.sel::after{opacity:0.5}
 
-/* Top HUD */
-#hud-top {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 0;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 40px;
-  backdrop-filter: blur(16px);
-  padding: 0 6px;
-  white-space: nowrap;
-}
+/* Screen 3 – tower */
+.tower-cards{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;max-width:800px}
+.tower-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px 24px;width:220px;cursor:pointer;transition:all 0.3s;text-align:center;position:relative;overflow:hidden}
+.tower-card:hover{border-color:rgba(255,255,255,0.2);transform:translateY(-4px)}
+.tower-card .tc-city{font-size:11px;letter-spacing:0.2em;color:var(--muted);margin-bottom:10px;text-transform:uppercase}
+.tower-card .tc-name{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;color:var(--text);margin-bottom:12px}
+.tower-card .tc-desc{font-size:11px;color:var(--muted);line-height:1.7;letter-spacing:0.03em}
+.tower-card .tc-accent{position:absolute;bottom:0;left:0;right:0;height:2px}
 
-.hud-seg {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px 18px;
-  border-right: 1px solid var(--border);
-}
+/* Intro button */
+.intro-btn{margin-top:36px;padding:12px 36px;border:1px solid rgba(255,255,255,0.15);border-radius:40px;background:transparent;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;transition:all 0.3s}
+.intro-btn:hover{border-color:var(--accent);color:var(--accent)}
 
-.hud-seg:last-child { border-right: none; }
+/* Lantern preview */
+#lantern-preview{width:60px;height:60px;border-radius:50%;margin:20px auto;position:relative}
+#lantern-preview::after{content:'';position:absolute;inset:-12px;border-radius:50%;background:inherit;opacity:0.2;filter:blur(12px)}
 
-.hud-label {
-  font-size: 9px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 2px;
-}
+/* ══ HUD ══ */
+#ui{position:fixed;inset:0;z-index:10;pointer-events:none}
 
-.hud-val {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--text);
-  letter-spacing: 0.05em;
-}
+#hud-top{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:stretch;background:var(--panel);border:1px solid var(--border);border-radius:36px;backdrop-filter:blur(20px);overflow:hidden;pointer-events:auto;white-space:nowrap}
+.hs{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 16px;border-right:1px solid var(--border)}
+.hs:last-child{border-right:none}
+.hl{font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.hv{font-size:14px;font-weight:500;color:var(--text);letter-spacing:0.04em}
+.hv.ac{color:var(--accent)}.hv.wm{color:var(--warm)}.hv.dn{color:var(--danger)}.hv.gd{color:var(--gold)}
 
-.hud-val.accent { color: var(--accent); }
-.hud-val.warm { color: var(--warm); }
-.hud-val.danger { color: var(--danger); }
+#stamina-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}
+#st-track{width:72px;height:3px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden}
+#st-fill{height:100%;border-radius:2px;transition:width .15s,background .4s}
 
-/* Stamina bar */
-#stamina-track {
-  width: 80px;
-  height: 3px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-top: 4px;
-}
+#phase-bar{position:absolute;top:62px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:5px 16px;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);backdrop-filter:blur(10px);pointer-events:none;transition:color 2s}
 
-#stamina-fill {
-  height: 100%;
-  border-radius: 2px;
-  background: var(--accent);
-  transition: width 0.15s linear, background 0.4s ease;
-}
+/* Climber tag */
+#ctag{position:absolute;top:14px;left:14px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:9px 13px;backdrop-filter:blur(12px);pointer-events:auto;cursor:pointer}
+#ctag-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:middle;flex-shrink:0}
+#ctag-name{font-size:10px;letter-spacing:0.1em;color:var(--text)}
+#ctag-sub{font-size:8px;color:var(--muted);margin-top:2px;letter-spacing:0.08em}
 
-/* Phase indicator */
-#phase-pill {
-  position: absolute;
-  top: 72px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 5px 14px;
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--muted);
-  backdrop-filter: blur(10px);
-  pointer-events: none;
-  transition: color 1.5s ease;
-}
+/* Ascent bar */
+#ascent-bar{position:absolute;right:14px;top:80px;bottom:80px;width:3px;background:rgba(255,255,255,0.04);border-radius:2px}
+#ascent-fill{position:absolute;bottom:0;left:0;width:100%;background:var(--accent);border-radius:2px;opacity:0.45;transition:height .6s}
 
-/* Side: Climber ID */
-#climber-id {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 14px;
-  backdrop-filter: blur(12px);
-  pointer-events: auto;
-  cursor: pointer;
-}
+/* Camp indicator */
+#camp-hud{position:absolute;top:14px;right:14px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:9px 13px;backdrop-filter:blur(12px);display:none;pointer-events:auto;cursor:pointer}
+#camp-label{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--warm)}
+#camp-timer{font-size:11px;color:var(--text);margin-top:2px}
 
-#id-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 6px;
-  vertical-align: middle;
-}
+/* Controls */
+#ctrl-hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:6px 18px;font-size:9px;color:var(--muted);letter-spacing:0.1em;backdrop-filter:blur(8px)}
 
-#id-name {
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: var(--text);
-}
-
-#id-sub {
-  font-size: 9px;
-  color: var(--muted);
-  margin-top: 1px;
-  letter-spacing: 0.08em;
-}
-
-/* Tower selector */
-#tower-select {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  pointer-events: auto;
-}
-
-.tower-btn {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 8px 12px;
-  cursor: pointer;
-  font-family: 'DM Mono', monospace;
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  transition: all 0.25s;
-  backdrop-filter: blur(10px);
-}
-
-.tower-btn:hover, .tower-btn.active {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-/* Controls hint */
-#controls-hint {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 7px 18px;
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: 0.1em;
-  backdrop-filter: blur(8px);
-}
-
-/* Vertical ascent meter */
-#ascent-meter {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  top: 120px;
-  width: 4px;
-  background: rgba(255,255,255,0.04);
-  border-radius: 2px;
-  pointer-events: none;
-}
-
-#ascent-fill {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: var(--accent);
-  border-radius: 2px;
-  transition: height 0.5s ease;
-  opacity: 0.5;
-}
-
-/* Message/Bridge overlays */
-.modal {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(8,12,22,0.97);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px;
-  padding: 28px 32px;
-  min-width: 300px;
-  display: none;
-  z-index: 50;
-  pointer-events: auto;
-  backdrop-filter: blur(20px);
-}
-
-.modal h3 {
-  font-family: 'Playfair Display', serif;
-  font-size: 20px;
-  font-weight: 400;
-  color: var(--text);
-  margin-bottom: 6px;
-}
-
-.modal p {
-  font-size: 10px;
-  color: var(--muted);
-  letter-spacing: 0.1em;
-  margin-bottom: 20px;
-  text-transform: uppercase;
-}
-
-.modal-input {
-  width: 100%;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 8px;
-  color: var(--text);
-  font-family: 'DM Mono', monospace;
-  font-size: 13px;
-  padding: 10px 14px;
-  margin-bottom: 16px;
-  outline: none;
-  transition: border 0.2s;
-}
-
-.modal-input:focus { border-color: var(--accent); }
-
-.bridge-option {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 10px;
-  cursor: pointer;
-  margin-bottom: 8px;
-  transition: all 0.2s;
-}
-
-.bridge-option:hover {
-  border-color: var(--accent);
-  background: rgba(79,209,197,0.05);
-}
-
-.bridge-title { font-size: 12px; color: var(--text); }
-.bridge-cost { font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.08em; }
-
-.btn-row { display: flex; gap: 8px; margin-top: 4px; }
-
-.modal-btn {
-  flex: 1;
-  padding: 9px;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text);
-  font-family: 'DM Mono', monospace;
-  font-size: 11px;
-  cursor: pointer;
-  letter-spacing: 0.08em;
-  transition: all 0.2s;
-}
-
-.modal-btn:hover { background: rgba(255,255,255,0.07); }
-.modal-btn.primary { border-color: var(--accent); color: var(--accent); }
-.modal-btn.primary:hover { background: rgba(79,209,197,0.12); }
-
-/* Death Screen */
-#death-screen {
-  position: absolute;
-  inset: 0;
-  background: rgba(3,5,13,0.97);
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  pointer-events: auto;
-}
-
-#death-screen h1 {
-  font-family: 'Playfair Display', serif;
-  font-size: clamp(48px, 10vw, 80px);
-  font-weight: 400;
-  font-style: italic;
-  color: var(--danger);
-  letter-spacing: 0.05em;
-  margin-bottom: 12px;
-}
-
-#death-epitaph {
-  font-size: 13px;
-  color: var(--muted);
-  font-style: italic;
-  font-family: 'Playfair Display', serif;
-  margin-bottom: 8px;
-}
-
-#death-floor-reached {
-  font-size: 11px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 40px;
-  opacity: 0.6;
-}
-
-.death-btn {
-  padding: 12px 40px;
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 40px;
-  background: transparent;
-  color: var(--text);
-  font-family: 'DM Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.death-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-/* Message notification */
-#msg-notif {
-  position: absolute;
-  bottom: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 8px 20px;
-  font-size: 11px;
-  font-family: 'Playfair Display', serif;
-  font-style: italic;
-  color: var(--warm);
-  backdrop-filter: blur(10px);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.5s;
-  white-space: nowrap;
-  max-width: 320px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* Notif */
+#notif{position:absolute;bottom:55px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:8px 20px;font-family:'Cormorant Garamond',serif;font-size:13px;font-style:italic;color:var(--warm);backdrop-filter:blur(10px);pointer-events:none;opacity:0;transition:opacity .5s;white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis}
 
 /* Touch controls */
-#touch-left, #touch-right, #touch-jump, #touch-rest {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  pointer-events: auto;
-  cursor: pointer;
-  font-size: 18px;
-  color: var(--muted);
-  transition: background 0.1s;
-  -webkit-user-select: none;
-}
+#touch-zone{position:absolute;bottom:0;left:0;right:0;height:130px;pointer-events:none}
+.tbtn{position:absolute;border-radius:50%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);display:none;align-items:center;justify-content:center;pointer-events:auto;cursor:pointer;font-size:16px;color:var(--muted);transition:background .1s;-webkit-user-select:none}
+.tbtn:active{background:rgba(255,255,255,0.09)}
+#tl{bottom:34px;left:18px;width:56px;height:56px}
+#tr{bottom:34px;left:82px;width:56px;height:56px}
+#tj{bottom:24px;right:18px;width:68px;height:68px;border-color:rgba(79,209,197,0.18);color:var(--accent);font-size:22px}
+#trest{bottom:102px;right:18px;width:46px;height:46px;font-size:12px}
+@media(pointer:coarse){.tbtn{display:flex}#ctrl-hint{display:none}}
 
-#touch-left:active, #touch-right:active, #touch-jump:active, #touch-rest:active {
-  background: rgba(255,255,255,0.1);
-}
+/* Modal */
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(5,8,18,0.97);border:1px solid rgba(255,255,255,0.1);border-radius:18px;padding:30px 34px;display:none;z-index:50;pointer-events:auto;backdrop-filter:blur(24px);min-width:280px;max-width:360px;width:90vw}
+.modal h3{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;color:var(--text);margin-bottom:5px}
+.modal-sub{font-size:9px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:22px}
+.modal-input{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:8px;color:var(--text);font-family:'Cormorant Garamond',serif;font-size:16px;padding:10px 14px;outline:none;transition:border .2s;margin-bottom:16px}
+.modal-input:focus{border-color:rgba(79,209,197,0.4)}
+.bridge-opt{display:flex;align-items:center;gap:12px;padding:11px 13px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;cursor:pointer;margin-bottom:8px;transition:all .2s}
+.bridge-opt:hover{border-color:var(--accent);background:rgba(79,209,197,0.04)}
+.bo-title{font-size:12px;color:var(--text)}
+.bo-cost{font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:0.06em}
+.mrow{display:flex;gap:8px;margin-top:6px}
+.mbtn{flex:1;padding:9px;border:1px solid rgba(255,255,255,0.09);border-radius:8px;background:transparent;color:var(--text);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.08em;transition:all .2s}
+.mbtn:hover{background:rgba(255,255,255,0.06)}
+.mbtn.pr{border-color:var(--accent);color:var(--accent)}
+.mbtn.pr:hover{background:rgba(79,209,197,0.1)}
 
-@media (pointer: coarse) {
-  #touch-left, #touch-right, #touch-jump, #touch-rest { display: flex; }
-  #controls-hint { display: none; }
-}
+/* Death */
+#death{position:fixed;inset:0;background:rgba(2,4,12,0.97);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;pointer-events:auto}
+#death h1{font-family:'Cormorant Garamond',serif;font-size:clamp(52px,10vw,86px);font-weight:300;font-style:italic;color:var(--danger);margin-bottom:14px}
+#death-epi{font-family:'Cormorant Garamond',serif;font-size:16px;font-style:italic;color:var(--muted);margin-bottom:8px}
+#death-fl{font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted);margin-bottom:42px;opacity:.6}
+.dbtn{padding:12px 44px;border:1px solid rgba(255,255,255,0.12);border-radius:40px;background:transparent;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;transition:all .3s;margin:6px}
+.dbtn:hover{border-color:var(--accent);color:var(--accent)}
 
-#touch-left  { bottom: 30px; left: 20px;  width: 64px; height: 64px; }
-#touch-right { bottom: 30px; left: 94px; width: 64px; height: 64px; }
-#touch-jump  { bottom: 30px; right: 20px; width: 72px; height: 72px; border-color: rgba(79,209,197,0.2); color: var(--accent); }
-#touch-rest  { bottom: 110px; right: 20px; width: 52px; height: 52px; font-size: 14px; }
+/* Vignette */
+#vig{position:fixed;inset:0;pointer-events:none;z-index:9;box-shadow:inset 0 0 120px rgba(252,129,129,.35);opacity:0;transition:opacity .3s}
 
-/* Floating action hint */
-.action-hint {
-  position: absolute;
-  font-size: 10px;
-  color: var(--accent);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  pointer-events: none;
-  opacity: 0;
-  animation: fadeHint 3s forwards;
-}
-
-@keyframes fadeHint {
-  0%{opacity:0;transform:translateY(0)}
-  20%{opacity:1}
-  70%{opacity:1}
-  100%{opacity:0;transform:translateY(-12px)}
-}
+/* Camp overlay */
+#camp-overlay{position:fixed;inset:0;background:rgba(2,4,12,0.92);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:80;pointer-events:auto}
+#camp-overlay h2{font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:300;font-style:italic;color:var(--warm);margin-bottom:12px}
+#camp-overlay p{font-size:11px;color:var(--muted);letter-spacing:0.1em;margin-bottom:8px}
+#camp-overlay .camp-floor{font-size:13px;color:var(--text);margin-bottom:36px;letter-spacing:0.1em}
 </style>
 </head>
 <body>
 
+<!-- ══ INTRO ══ -->
+<div id="intro">
+  <!-- S0: Lore -->
+  <div class="intro-screen active" id="s0">
+    <div class="lore-line" id="l0">The tower has no top.</div>
+    <div class="lore-line" id="l1">No one knows who built it.</div>
+    <div class="lore-line" id="l2">But every year, more people climb.</div>
+    <div class="lore-line" id="l3" style="margin-top:28px;font-size:clamp(12px,2vw,15px);opacity:0;color:#3d4f6b;font-style:normal;letter-spacing:0.1em">— and their marks remain forever —</div>
+    <div class="intro-skip" id="intro-skip" onclick="INTRO.skip()">skip →</div>
+  </div>
+
+  <!-- S1: Name -->
+  <div class="intro-screen" id="s1">
+    <div class="intro-label">Who are you?</div>
+    <div class="intro-title">Give yourself a name</div>
+    <input class="intro-input" id="climber-name-input" type="text" maxlength="20" placeholder="your name" autocomplete="off" spellcheck="false">
+    <button class="intro-btn" id="name-btn" onclick="INTRO.goS2()">Continue</button>
+  </div>
+
+  <!-- S2: Lantern color -->
+  <div class="intro-screen" id="s2">
+    <div class="intro-label">Choose your lantern</div>
+    <div class="intro-title">It is the only light you carry</div>
+    <div id="lantern-preview"></div>
+    <div class="lantern-row" id="lantern-row"></div>
+    <button class="intro-btn" onclick="INTRO.goS3()">I'm ready</button>
+  </div>
+
+  <!-- S3: Tower select -->
+  <div class="intro-screen" id="s3">
+    <div class="intro-label" style="margin-bottom:28px">Choose your tower</div>
+    <div class="tower-cards" id="tower-cards"></div>
+  </div>
+</div>
+
+<!-- ══ GAME ══ -->
 <canvas id="bg-canvas"></canvas>
 <canvas id="game-canvas"></canvas>
 
 <div id="ui">
-
-  <!-- Climber identity -->
-  <div id="climber-id">
-    <span id="id-dot"></span><span id="id-name">LOADING...</span>
-    <div id="id-sub">YOUR LANTERN</div>
+  <div id="ctag">
+    <div style="display:flex;align-items:center">
+      <div id="ctag-dot"></div><span id="ctag-name">—</span>
+    </div>
+    <div id="ctag-sub">tap for stats</div>
   </div>
 
-  <!-- Tower selector -->
-  <div id="tower-select">
-    <button class="tower-btn active" data-tower="tokyo">TYO</button>
-    <button class="tower-btn" data-tower="paris">PAR</button>
-    <button class="tower-btn" data-tower="toronto">YYZ</button>
+  <div id="camp-hud">
+    <div id="camp-label">⛺ CAMPED</div>
+    <div id="camp-timer">Floor <span id="camp-fl">—</span></div>
   </div>
 
-  <!-- Top HUD -->
   <div id="hud-top">
-    <div class="hud-seg">
-      <div class="hud-label">Floor</div>
-      <div class="hud-val accent" id="hud-floor">001</div>
+    <div class="hs"><div class="hl">Floor</div><div class="hv ac" id="hv-floor">001</div></div>
+    <div class="hs"><div class="hl">Stamina</div>
+      <div id="stamina-wrap"><div id="st-track"><div id="st-fill"></div></div><div class="hv" id="hv-st">100</div></div>
     </div>
-    <div class="hud-seg">
-      <div class="hud-label">Stamina</div>
-      <div id="stamina-track"><div id="stamina-fill"></div></div>
-      <div class="hud-val" id="hud-stamina">100</div>
-    </div>
-    <div class="hud-seg">
-      <div class="hud-label">Climbers</div>
-      <div class="hud-val warm" id="hud-climbers">1,247</div>
-    </div>
-    <div class="hud-seg">
-      <div class="hud-label">Bridges</div>
-      <div class="hud-val" id="hud-bridges">0</div>
-    </div>
+    <div class="hs"><div class="hl">Best</div><div class="hv wm" id="hv-best">001</div></div>
+    <div class="hs"><div class="hl">Bridges</div><div class="hv" id="hv-br">0</div></div>
+    <div class="hs"><div class="hl">Mode</div><div class="hv gd" id="hv-mode">Sprint</div></div>
   </div>
+  <div id="phase-bar">The City</div>
 
-  <!-- Phase -->
-  <div id="phase-pill">The City</div>
+  <div id="ascent-bar"><div id="ascent-fill"></div></div>
+  <div id="ctrl-hint">A/D Move · Space Jump · E Bridge · F Message · R Rest (hold) · C Camp (hold)</div>
+  <div id="notif"></div>
+  <div id="vig"></div>
 
-  <!-- Ascent meter -->
-  <div id="ascent-meter"><div id="ascent-fill"></div></div>
-
-  <!-- Controls hint -->
-  <div id="controls-hint">A/D Move &nbsp;·&nbsp; Space Jump &nbsp;·&nbsp; Hold R Rest &nbsp;·&nbsp; E Bridge &nbsp;·&nbsp; F Message</div>
-
-  <!-- Touch controls -->
-  <div id="touch-left">◀</div>
-  <div id="touch-right">▶</div>
-  <div id="touch-jump">↑</div>
-  <div id="touch-rest">Z</div>
-
-  <!-- Message notification -->
-  <div id="msg-notif"></div>
+  <div id="touch-zone">
+    <div class="tbtn" id="tl">◀</div>
+    <div class="tbtn" id="tr">▶</div>
+    <div class="tbtn" id="tj">↑</div>
+    <div class="tbtn" id="trest" style="font-size:10px;letter-spacing:.05em">REST</div>
+  </div>
 
   <!-- Message modal -->
-  <div class="modal" id="message-modal">
-    <h3>Leave a Message</h3>
-    <p>Your words outlast you · 50 chars max · costs 5 stamina</p>
-    <input class="modal-input" id="message-input" type="text" maxlength="50" placeholder="What will you carve?">
-    <div class="btn-row">
-      <button class="modal-btn primary" onclick="GAME.submitMessage()">Carve it</button>
-      <button class="modal-btn" onclick="GAME.closeModal('message-modal')">Cancel</button>
+  <div class="modal" id="msg-modal">
+    <h3>Carve a Message</h3>
+    <div class="modal-sub">Permanent · visible to all · costs 5 stamina</div>
+    <input class="modal-input" id="msg-input" type="text" maxlength="50" placeholder="What will you leave behind?">
+    <div class="mrow">
+      <button class="mbtn pr" id="msg-submit">Carve it in</button>
+      <button class="mbtn" onclick="GAME.closeModals()">Cancel</button>
     </div>
   </div>
 
   <!-- Bridge modal -->
   <div class="modal" id="bridge-modal">
     <h3>Build a Bridge</h3>
-    <p>Bridges persist after death · others will use yours</p>
-    <div class="bridge-option" onclick="GAME.buildBridge('plank')">
-      <div>
-        <div class="bridge-title">Wooden Plank</div>
-        <div class="bridge-cost">15 Stamina · 50 uses · Burns amber</div>
-      </div>
+    <div class="modal-sub">Bridges persist after your death · others will use them</div>
+    <div class="bridge-opt" onclick="GAME.buildBridge('plank')">
+      <div><div class="bo-title">Wooden Plank</div><div class="bo-cost">15 stamina · 50 uses · Burns warm</div></div>
     </div>
-    <div class="bridge-option" onclick="GAME.buildBridge('rope')">
-      <div>
-        <div class="bridge-title">Rope Ladder</div>
-        <div class="bridge-cost">25 Stamina · 100 uses · Sways in wind</div>
-      </div>
+    <div class="bridge-opt" onclick="GAME.buildBridge('rope')">
+      <div><div class="bo-title">Rope Ladder</div><div class="bo-cost">25 stamina · 100 uses · Sways in wind</div></div>
     </div>
-    <div class="bridge-option" onclick="GAME.buildBridge('stone')">
-      <div>
-        <div class="bridge-title">Stone Arch</div>
-        <div class="bridge-cost">40 Stamina · Permanent · Glows gold at 1000 uses</div>
-      </div>
+    <div class="bridge-opt" onclick="GAME.buildBridge('stone')">
+      <div><div class="bo-title">Stone Arch</div><div class="bo-cost">40 stamina · Permanent · Gold at 1,000 uses</div></div>
     </div>
-    <div class="btn-row" style="margin-top:12px">
-      <button class="modal-btn" onclick="GAME.closeModal('bridge-modal')">Cancel</button>
-    </div>
+    <div class="mrow"><button class="mbtn" onclick="GAME.closeModals()">Cancel</button></div>
   </div>
+</div>
 
-  <!-- Death screen -->
-  <div id="death-screen">
-    <h1>Fallen</h1>
-    <div id="death-epitaph">"The abyss has a long memory."</div>
-    <div id="death-floor-reached">You reached floor <span id="death-floor-num">1</span></div>
-    <button class="death-btn" onclick="GAME.respawn()">Climb Again</button>
-  </div>
+<!-- Death -->
+<div id="death">
+  <h1>Fallen</h1>
+  <div id="death-epi"></div>
+  <div id="death-fl">You reached floor <span id="death-num">1</span></div>
+  <button class="dbtn" onclick="GAME.respawn()">Climb Again</button>
+</div>
 
+<!-- Camp overlay -->
+<div id="camp-overlay">
+  <h2>Camp Set</h2>
+  <p>Your stamina recovers while you rest.</p>
+  <p>Return anytime to continue.</p>
+  <div class="camp-floor" id="co-floor">Floor —</div>
+  <button class="dbtn" onclick="GAME.breakCamp()">Break Camp & Continue</button>
+  <button class="dbtn" style="opacity:.5" onclick="GAME.logOut()">Log Out (save &amp; close)</button>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════════════
-   THE TOWER — CLAUDE'S VERSION
-   Modular Architecture: WORLD | PHYSICS | RENDERER | UI | GAME
-   ═══════════════════════════════════════════════════════════ */
+'use strict';
+/* ═══════════════════════════════════════════════════════════════
+   THE TOWER v2 — Claude
+   Modules: WORLD | IDENTITY | STATE | PHYSICS | BG | RENDERER | INPUT | UI | GAME | INTRO
+   ═══════════════════════════════════════════════════════════════ */
 
-/* ── WORLD REGISTRY ── Every tower is data, not code ── */
+/* ── WORLD ── */
 const WORLD = {
   towers: {
     tokyo: {
-      name: 'Tokyo Skytree',
-      code: 'TYO',
-      color: '#4fd1c5',
-      secondaryColor: '#c53030',
-      skyGradient: ['#02060f', '#050f1a', '#081520'],
-      buildingPalette: ['#0d1a2e', '#0a1525', '#071020'],
-      windowColor: '#f6ad55',
-      platformColor: '#1a3a4a',
-      platformEdge: '#4fd1c5',
-      latticeColor: 'rgba(79,209,197,0.12)',
-      gravity: 0.48,
-      wind: 0.6,
+      name:'Tokyo Skytree', city:'Tokyo, Japan', code:'TYO',
+      color:'#4fd1c5', secondary:'#e53e3e', warm:'#f6ad55',
+      desc:'In Tokyo, the crossing below never sleeps. Climb high enough and it becomes a memory.',
+      gravity:0.52, wind:0.7,
+      platform:'#0d2a35', platformEdge:'#4fd1c5', lattice:'rgba(79,209,197,0.09)',
     },
     paris: {
-      name: 'Tour Eiffel',
-      code: 'PAR',
-      color: '#f6ad55',
-      secondaryColor: '#d69e2e',
-      skyGradient: ['#0f070a', '#18090e', '#200c12'],
-      buildingPalette: ['#2a1008', '#1e0a06', '#150705'],
-      windowColor: '#f6e05e',
-      platformColor: '#3a2210',
-      platformEdge: '#f6ad55',
-      latticeColor: 'rgba(246,173,85,0.10)',
-      gravity: 0.46,
-      wind: 0.9,
+      name:'Tour Eiffel', city:'Paris, France', code:'PAR',
+      color:'#f6ad55', secondary:'#d69e2e', warm:'#f6ad55',
+      desc:'Paris glows amber at night. Above the rooftops, the city becomes a constellation.',
+      gravity:0.48, wind:1.0,
+      platform:'#2a1a08', platformEdge:'#f6ad55', lattice:'rgba(246,173,85,0.09)',
     },
-    toronto: {
-      name: 'CN Tower',
-      code: 'YYZ',
-      color: '#63b3ed',
-      secondaryColor: '#4299e1',
-      skyGradient: ['#020810', '#041020', '#061525'],
-      buildingPalette: ['#0a1520', '#0d1a28', '#101f30'],
-      windowColor: '#90cdf4',
-      platformColor: '#0f2030',
-      platformEdge: '#63b3ed',
-      latticeColor: 'rgba(99,179,237,0.10)',
-      gravity: 0.50,
-      wind: 1.1,
+    nyc: {
+      name:'Empire State Bldg', city:'New York, USA', code:'NYC',
+      color:'#a0c4e8', secondary:'#63b3ed', warm:'#fed7aa',
+      desc:'Manhattan never dims. From the summit, you can see the curve of the earth.',
+      gravity:0.50, wind:1.3,
+      platform:'#0f1e2a', platformEdge:'#a0c4e8', lattice:'rgba(160,196,232,0.09)',
     }
   },
-
-  phases: [
-    { name: 'The City',       from: 1,    to: 50,   sub: 'Ground level' },
-    { name: 'The Atmosphere', from: 51,   to: 150,  sub: 'Above the clouds' },
-    { name: 'Near Space',     from: 151,  to: 500,  sub: "Earth's curve" },
-    { name: 'The Moon',       from: 501,  to: 1500, sub: 'Lunar orbit' },
-    { name: 'Inner System',   from: 1501, to: 5000, sub: 'Solar winds' },
-    { name: 'The Deep',       from: 5001, to: Infinity, sub: 'Interstellar void' },
+  phases:[
+    {name:'The City',      from:1,    to:50,   sub:'Ground level'},
+    {name:'The Atmosphere',from:51,   to:150,  sub:'Above the clouds'},
+    {name:'Near Space',    from:151,  to:500,  sub:"Earth's curve"},
+    {name:'The Moon',      from:501,  to:1500, sub:'Lunar orbit'},
+    {name:'Inner System',  from:1501, to:5000, sub:'Solar winds'},
+    {name:'The Deep',      from:5001, to:Infinity, sub:'Interstellar void'},
   ],
-
-  getPhase(floor) {
-    return this.phases.find(p => floor >= p.from && floor <= p.to) || this.phases[this.phases.length - 1];
-  },
-
-  epitaphs: [
+  getPhase(f){return this.phases.find(p=>f>=p.from&&f<=p.to)||this.phases[this.phases.length-1]},
+  epitaphs:[
     '"Even the void mourns the climbers."',
     '"A lantern extinguished is a star remembered."',
-    '"Every fall is a lesson carved into the stone."',
+    '"Every fall is a lesson carved in stone."',
     '"The tower does not count the fallen. It counts the floors."',
     '"Your bridges remain. Your passage, not."',
     '"Gravity was patient."',
-  ]
+    '"They climbed until they couldn\'t. Then they climbed once more."',
+  ],
+  lanternColors:['#4fd1c5','#f6ad55','#fc8181','#68d391','#b794f4','#90cdf4'],
 };
 
-/* ── PHYSICS MODULE ── */
-const PHYSICS = {
-  FLOOR_H: 150,
-  PLATFORM_W_BASE: 320,
+/* ── IDENTITY ── */
+const IDENTITY = (()=>{
+  let id=null;
+  function load(){
+    try{const s=localStorage.getItem('twrv2_id'); if(s) id=JSON.parse(s);}catch(e){}
+  }
+  function save(){try{localStorage.setItem('twrv2_id',JSON.stringify(id));}catch(e){}}
+  return {
+    get(){if(!id)load(); return id;},
+    set(name,color){id={name,color}; save();},
+    ready(){return !!id && !!id.name}
+  };
+})();
 
-  getPlatformWidth(floor) {
-    return Math.max(180, this.PLATFORM_W_BASE - Math.floor(floor / 10));
+/* ── PHYSICS CONSTANTS ── */
+const PHY = {
+  FLOOR_H: 160,       // vertical pixels per floor
+  GAP: 100,           // gap between platform top and next platform bottom
+  BASE_PW: 300,       // base platform width
+  minPW: 140,
+  platformW(floor){return Math.max(this.minPW, this.BASE_PW - floor*0.8);},
+  gravity(floor, base){
+    if(floor<151) return base;
+    if(floor<501) return base*0.78;
+    if(floor<1501)return base*0.48;
+    return base*0.22;
   },
-
-  getGravity(floor, towerGravity) {
-    if (floor < 151) return towerGravity;
-    if (floor < 501) return towerGravity * 0.8;
-    if (floor < 1501) return towerGravity * 0.5;
-    return towerGravity * 0.25;
+  jumpPow(floor){
+    if(floor<151) return 12;
+    if(floor<501) return 10.5;
+    if(floor<1501)return 9;
+    return 7;
   }
 };
 
-/* ── IDENTITY SYSTEM ── Persistent climber across deaths ── */
-const IDENTITY = (() => {
-  const adjectives = ['Hollow','Silent','Ashen','Gilded','Ancient','Iron','Storm','Pale','Blind','Swift'];
-  const nouns      = ['Lantern','Climber','Pilgrim','Shadow','Echo','Walker','Watcher','Seer','Bearer','Hand'];
-  const hues       = [0,30,60,120,180,210,240,270,300,330];
+/* ── STATE ── */
+const S = {
+  // tower & character
+  tower:'tokyo', floor:1, stamina:100, maxSt:100,
+  // physics
+  px:0.5, py:0, // px = 0-1 on platform; py = pixel offset above platform (negative=up)
+  vy:0, onGround:true, facing:1,
+  // flags
+  dead:false, inputLocked:false, isResting:false, camped:false,
+  jumpBuf:0, coyote:0,
+  // world
+  time:0, windOff:0, windTarget:0,
+  camY:0, // camera top-left Y in world coords
+  // persistence
+  messages:[], corpses:[], bridges:[], bridgeCount:0, bestFloor:1, totalBridges:0,
+  // fx
+  particles:[], embers:[], ghosts:[],
+  // playstyle
+  sessionStart:0, sessionFloors:0, campedAt:null, campFloor:0,
 
-  function generate() {
-    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const noun = nouns[Math.floor(Math.random() * nouns.length)];
-    const hue = hues[Math.floor(Math.random() * hues.length)];
-    const id = `${adj}${noun}${Math.floor(Math.random() * 9000 + 1000)}`;
-    const color = `hsl(${hue}, 70%, 65%)`;
-    return { id, name: `${adj} ${noun}`, color };
+  load(tower){
+    try{
+      const d=JSON.parse(localStorage.getItem('twrv2_'+tower)||'{}');
+      this.floor=d.floor||1; this.stamina=d.stamina||100;
+      this.messages=d.messages||[]; this.corpses=d.corpses||[];
+      this.bridges=d.bridges||[]; this.bridgeCount=d.bridgeCount||0;
+      this.bestFloor=d.bestFloor||1; this.totalBridges=d.totalBridges||0;
+      this.campedAt=d.campedAt||null; this.campFloor=d.campFloor||0;
+      // Offline stamina recovery
+      if(this.campedAt){
+        const elapsed=(Date.now()-this.campedAt)/1000; // seconds
+        const recovered=Math.min(60, elapsed/120*60); // 2 min real = 1 stamina, cap 60
+        this.stamina=Math.min(this.maxSt, (d.stamina||40)+recovered);
+      }
+    }catch(e){}
+  },
+  save(){
+    try{
+      localStorage.setItem('twrv2_'+this.tower,JSON.stringify({
+        floor:this.floor, stamina:Math.round(this.stamina),
+        messages:this.messages, corpses:this.corpses,
+        bridges:this.bridges, bridgeCount:this.bridgeCount,
+        bestFloor:this.bestFloor, totalBridges:this.totalBridges,
+        campedAt:this.campedAt, campFloor:this.campFloor,
+      }));
+    }catch(e){}
+  },
+  reset(){
+    this.px=0.5; this.py=0; this.vy=0; this.onGround=true;
+    this.dead=false; this.isResting=false; this.jumpBuf=0; this.coyote=0;
+    this.embers=[]; this.particles=[];
+  }
+};
+
+/* ═══════════════════════════════════
+   BG MODULE — Layered parallax city scenes
+   ═══════════════════════════════════ */
+const BG = (()=>{
+  const bc=document.getElementById('bg-canvas');
+  const bx=bc.getContext('2d');
+  let W=0,H=0;
+
+  /* Seeded RNG for deterministic buildings */
+  function rng(seed){let s=seed^0x12345; return ()=>{s^=s<<13;s^=s>>17;s^=s<<5;return(s>>>0)/0xFFFFFFFF};}
+
+  /* ── TOKYO scene data ── */
+  let tokyoData=null;
+  function buildTokyo(W,H){
+    const r=rng(42);
+    // Buildings: {x,w,h,color,windows}
+    const bldgs=[];
+    const cols=['#0a1a2e','#0c1f35','#06101e','#081828','#0e2040','#060e1c'];
+    for(let i=0;i<40;i++){
+      const x=r()*W*1.2-W*0.1;
+      const w=20+r()*60;
+      const h=H*0.1+r()*H*0.5;
+      bldgs.push({x,w,h,color:cols[Math.floor(r()*cols.length)],winColor:r()>0.3?'#f6ad55':'#90cdf4',winA:r()});
+    }
+    // Neon signs: {x,y,text,color,w}
+    const neonTexts=['ドン・キホーテ','パチンコ','スター バックス','ルイ・ヴィトン','東京','渋谷','ローソン'];
+    const neons=[];
+    for(let i=0;i<12;i++){
+      neons.push({x:r()*W,y:H*0.3+r()*H*0.4,text:neonTexts[Math.floor(r()*neonTexts.length)],color:`hsl(${Math.floor(r()*360)},80%,65%)`,w:60+r()*100,seed:r()*100});
+    }
+    // Crowd silhouettes at bottom
+    const crowd=[];
+    for(let i=0;i<120;i++){
+      crowd.push({x:r()*W,h:12+r()*14,phase:r()*Math.PI*2,speed:0.5+r()*1.5});
+    }
+    // Crosswalk stripes
+    const xwalk={x:W*0.2,w:W*0.6,y:H-60};
+    tokyoData={bldgs,neons,crowd,xwalk};
   }
 
-  let identity = null;
+  /* ── PARIS scene data ── */
+  let parisData=null;
+  function buildParis(W,H){
+    const r=rng(99);
+    const bldgs=[];
+    const cols=['#1e100a','#2a1508','#160a04','#221206','#180c06'];
+    for(let i=0;i<38;i++){
+      const x=r()*W*1.2-W*0.1;
+      const w=25+r()*55;
+      const h=H*0.1+r()*H*0.4;
+      bldgs.push({x,w,h,color:cols[Math.floor(r()*cols.length)],winColor:'#f6e05e',roof:'mansard',winA:r()});
+    }
+    // Eiffel silhouette in distance
+    const eff={x:W*0.72,y:H*0.25,h:H*0.55};
+    // Street lamps
+    const lamps=[];
+    for(let i=0;i<15;i++) lamps.push({x:i*(W/14)+r()*30-15,y:H-H*0.18});
+    // Cafe awnings
+    const awnings=[];
+    for(let i=0;i<6;i++) awnings.push({x:W*0.05+r()*W*0.7,y:H-H*0.12-r()*H*0.15,w:40+r()*50,color:r()>0.5?'#c53030':'#276749'});
+    // Seine river strip
+    const seine={y:H-30,h:28};
+    parisData={bldgs,eff,lamps,awnings,seine};
+  }
+
+  /* ── NYC scene data ── */
+  let nycData=null;
+  function buildNYC(W,H){
+    const r=rng(7);
+    const bldgs=[];
+    const cols=['#0a121e','#0c1828','#080e18','#0e1a2c','#060c14'];
+    // Art deco skyscrapers — taller
+    for(let i=0;i<45;i++){
+      const x=r()*W*1.2-W*0.1;
+      const w=15+r()*70;
+      const h=H*0.15+r()*H*0.65;
+      const steps=r()>0.6?Math.floor(r()*3+1):0; // setbacks
+      bldgs.push({x,w,h,color:cols[Math.floor(r()*cols.length)],winColor:r()>0.4?'#fed7aa':'#90cdf4',steps,winA:r()});
+    }
+    // Empire State silhouette
+    const empire={x:W*0.5,h:H*0.72};
+    // Chrysler
+    const chrysler={x:W*0.72,h:H*0.58};
+    // Water towers
+    const wt=[];
+    for(let i=0;i<8;i++) wt.push({x:r()*W,y:H-H*(0.2+r()*0.3)});
+    // Steam vents
+    const steam=[];
+    for(let i=0;i<6;i++) steam.push({x:W*0.1+r()*W*0.8,seed:r()*100});
+    // Yellow cabs
+    const cabs=[];
+    for(let i=0;i<10;i++) cabs.push({x:r()*W,y:H-20-r()*30,speed:(r()-0.5)*2,seed:r()*100});
+    nycData={bldgs,empire,chrysler,wt,steam,cabs};
+  }
+
+  /* ── SHARED upper atmosphere ── */
+  const stars=Array.from({length:400},()=>({
+    x:Math.random(),y:Math.random(),r:Math.random()*1.6+0.3,
+    a:Math.random()*0.8+0.2,tw:Math.random()*Math.PI*2,sp:0.001+Math.random()*0.002
+  }));
+
+  function drawTokyo(t,cityFade){
+    if(!tokyoData) return;
+    const {bldgs,neons,crowd,xwalk}=tokyoData;
+
+    // Sky gradient
+    const sky=bx.createLinearGradient(0,0,0,H);
+    sky.addColorStop(0,'#020810'); sky.addColorStop(0.5,'#04111e'); sky.addColorStop(1,'#071828');
+    bx.fillStyle=sky; bx.fillRect(0,0,W,H);
+
+    bx.globalAlpha=cityFade;
+
+    // Buildings
+    bldgs.forEach(b=>{
+      const by=H-b.h;
+      bx.fillStyle=b.color; bx.fillRect(b.x,by,b.w,b.h);
+      // Windows
+      const rows=Math.floor(b.h/18); const cols2=Math.floor(b.w/10);
+      for(let r2=0;r2<rows;r2++) for(let c=0;c<cols2;c++){
+        const on=Math.sin(b.winA*100+r2*13+c*7+t*0.0003)>0.1;
+        if(on){bx.fillStyle=b.winColor; bx.globalAlpha=cityFade*(0.25+Math.sin(t*0.0004+r2+c)*0.08); bx.fillRect(b.x+c*10+2,by+r2*18+4,6,9);}
+      }
+      bx.globalAlpha=cityFade;
+      // Rooftop edge glow
+      bx.fillStyle='rgba(79,209,197,0.06)'; bx.fillRect(b.x,by,b.w,2);
+    });
+
+    // Crosswalk
+    bx.fillStyle='rgba(255,255,255,0.08)'; bx.fillRect(xwalk.x,xwalk.y,xwalk.w,8);
+    for(let i=0;i<18;i++){bx.fillStyle='rgba(255,255,255,0.12)'; bx.fillRect(xwalk.x+i*(xwalk.w/18),xwalk.y,xwalk.w/36,8);}
+
+    // Road
+    bx.fillStyle='#060e14'; bx.fillRect(0,H-70,W,70);
+    // Road lines
+    bx.setLineDash([30,20]); bx.strokeStyle='rgba(255,220,0,0.2)'; bx.lineWidth=2;
+    bx.beginPath(); bx.moveTo(0,H-38); bx.lineTo(W,H-38); bx.stroke();
+    bx.setLineDash([]);
+
+    // Crowd silhouettes (bottom)
+    crowd.forEach(p=>{
+      const cx2=((p.x+t*p.speed*0.02)%W+W)%W;
+      const cy=H-8-Math.sin(t*0.003+p.phase)*2;
+      bx.fillStyle='rgba(255,255,255,0.5)';
+      bx.fillRect(cx2-2,cy-p.h,4,p.h);
+      bx.beginPath(); bx.arc(cx2,cy-p.h-4,3.5,0,Math.PI*2); bx.fill();
+    });
+
+    // Neon signs
+    neons.forEach(n=>{
+      const flicker=Math.sin(t*0.007+n.seed)>-0.3?1:0.1;
+      bx.globalAlpha=cityFade*0.7*flicker;
+      bx.fillStyle=n.color;
+      bx.fillRect(n.x,n.y,n.w,22);
+      bx.globalAlpha=cityFade*flicker*0.25;
+      bx.fillStyle=n.color;
+      bx.fillRect(n.x-4,n.y-4,n.w+8,30); // glow halo
+      bx.globalAlpha=cityFade;
+      bx.fillStyle='rgba(0,0,0,0.6)'; bx.font='bold 11px sans-serif';
+      bx.fillText(n.text,n.x+6,n.y+15);
+    });
+
+    bx.globalAlpha=1;
+  }
+
+  function drawParis(t,cityFade){
+    if(!parisData) return;
+    const {bldgs,eff,lamps,awnings,seine}=parisData;
+
+    // Warm night sky
+    const sky=bx.createLinearGradient(0,0,0,H);
+    sky.addColorStop(0,'#0c0608'); sky.addColorStop(0.6,'#1a0b0e'); sky.addColorStop(1,'#220e10');
+    bx.fillStyle=sky; bx.fillRect(0,0,W,H);
+
+    bx.globalAlpha=cityFade;
+
+    // Eiffel silhouette
+    const ex=eff.x, ey=H-eff.h;
+    bx.fillStyle='#2a1a0a'; bx.strokeStyle='rgba(246,173,85,0.2)'; bx.lineWidth=1;
+    // Tower triangle
+    bx.beginPath(); bx.moveTo(ex-40,H); bx.lineTo(ex,ey); bx.lineTo(ex+40,H); bx.closePath(); bx.fill(); bx.stroke();
+    // Cross beams
+    for(let i=1;i<5;i++){bx.fillStyle='rgba(246,173,85,0.08)'; bx.fillRect(ex-38+i*7,H-eff.h*i/5-5,76-i*14,3);}
+    // Beacon
+    const beaconA=Math.sin(t*0.01)*0.3+0.7;
+    bx.fillStyle=`rgba(246,173,85,${beaconA*0.9})`; bx.beginPath(); bx.arc(ex,ey-8,3,0,Math.PI*2); bx.fill();
+
+    // Haussmann buildings
+    bldgs.forEach(b=>{
+      const by=H-b.h;
+      bx.fillStyle=b.color; bx.fillRect(b.x,by,b.w,b.h);
+      // Mansard roof
+      bx.fillStyle='#2a1808'; bx.beginPath();
+      bx.moveTo(b.x,by); bx.lineTo(b.x+b.w*0.1,by-14); bx.lineTo(b.x+b.w*0.9,by-14); bx.lineTo(b.x+b.w,by); bx.closePath(); bx.fill();
+      // Windows
+      const rows=Math.floor(b.h/22); const wc=Math.floor(b.w/14);
+      for(let r2=0;r2<rows;r2++) for(let c=0;c<wc;c++){
+        const on=Math.sin(b.winA*80+r2*11+c*5)>-0.2;
+        if(on){bx.fillStyle=b.winColor; bx.globalAlpha=cityFade*(0.22+Math.sin(t*0.0003+r2)*0.06); bx.fillRect(b.x+c*14+3,by+r2*22+5,7,10);}
+      }
+      bx.globalAlpha=cityFade;
+    });
+
+    // Seine
+    bx.fillStyle='#0a1828'; bx.fillRect(0,seine.y,W,seine.h);
+    // Reflections on Seine
+    for(let i=0;i<30;i++){
+      const rx=i*(W/29);
+      const ry=seine.y+Math.sin(t*0.002+i)*3;
+      bx.strokeStyle='rgba(246,173,85,0.12)'; bx.lineWidth=1;
+      bx.beginPath(); bx.moveTo(rx,ry); bx.lineTo(rx+15,ry+4); bx.stroke();
+    }
+
+    // Street lamps (amber)
+    lamps.forEach(l=>{
+      bx.fillStyle='#2a1808'; bx.fillRect(l.x-1,l.y-35,2,35);
+      const g=bx.createRadialGradient(l.x,l.y-35,0,l.x,l.y-35,25);
+      g.addColorStop(0,'rgba(246,173,85,0.45)'); g.addColorStop(1,'transparent');
+      bx.fillStyle=g; bx.beginPath(); bx.arc(l.x,l.y-35,25,0,Math.PI*2); bx.fill();
+    });
+
+    // Cafe awnings
+    awnings.forEach(a=>{
+      bx.fillStyle=a.color; bx.fillRect(a.x,a.y,a.w,8);
+      bx.globalAlpha=cityFade*0.5;
+      for(let i=0;i<Math.floor(a.w/8);i++){bx.fillStyle='rgba(255,255,255,0.2)'; bx.fillRect(a.x+i*8,a.y,4,8);}
+      bx.globalAlpha=cityFade;
+    });
+
+    bx.globalAlpha=1;
+  }
+
+  function drawNYC(t,cityFade){
+    if(!nycData) return;
+    const {bldgs,empire,chrysler,wt,steam,cabs}=nycData;
+
+    // Blue-grey night sky
+    const sky=bx.createLinearGradient(0,0,0,H);
+    sky.addColorStop(0,'#020810'); sky.addColorStop(0.5,'#081018'); sky.addColorStop(1,'#0c1828');
+    bx.fillStyle=sky; bx.fillRect(0,0,W,H);
+
+    bx.globalAlpha=cityFade;
+
+    // Buildings with setbacks
+    bldgs.forEach(b=>{
+      let curW=b.w, curX=b.x, curH=b.h, by=H;
+      const segH=b.h/(b.steps+1);
+      for(let s=0;s<=b.steps;s++){
+        by-=segH; bx.fillStyle=b.color; bx.fillRect(curX,by,curW,segH+2);
+        curX+=curW*0.15; curW*=0.7;
+      }
+      // Windows
+      const rows=Math.floor(b.h/16); const wc=Math.floor(b.w/10);
+      for(let r2=0;r2<Math.min(rows,20);r2++) for(let c=0;c<Math.min(wc,8);c++){
+        const on=Math.sin(b.winA*70+r2*9+c*6+t*0.0001)>0;
+        if(on){bx.fillStyle=b.winColor; bx.globalAlpha=cityFade*(0.2+Math.sin(t*0.0005+r2+c)*0.07); bx.fillRect(b.x+c*10+2,H-b.h+r2*16+3,7,8);}
+      }
+      bx.globalAlpha=cityFade;
+    });
+
+    // Empire State
+    const ex=empire.x, eh=empire.h;
+    bx.fillStyle='#0c1828';
+    bx.beginPath(); bx.moveTo(ex-25,H); bx.lineTo(ex-22,H-eh*0.7); bx.lineTo(ex-16,H-eh*0.85); bx.lineTo(ex-8,H-eh*0.92); bx.lineTo(ex-3,H-eh); bx.lineTo(ex,H-eh-20); bx.lineTo(ex+3,H-eh); bx.lineTo(ex+8,H-eh*0.92); bx.lineTo(ex+16,H-eh*0.85); bx.lineTo(ex+22,H-eh*0.7); bx.lineTo(ex+25,H); bx.closePath(); bx.fill();
+    // Mooring mast
+    bx.strokeStyle='rgba(160,196,232,0.3)'; bx.lineWidth=1.5;
+    bx.beginPath(); bx.moveTo(ex,H-eh-20); bx.lineTo(ex,H-eh-50); bx.stroke();
+
+    // Chrysler spire
+    const crx=chrysler.x, crh=chrysler.h;
+    bx.fillStyle='#0a1620';
+    bx.beginPath(); bx.moveTo(crx-18,H); bx.lineTo(crx-15,H-crh*0.8); bx.lineTo(crx-6,H-crh*0.9); bx.lineTo(crx,H-crh); bx.lineTo(crx+6,H-crh*0.9); bx.lineTo(crx+15,H-crh*0.8); bx.lineTo(crx+18,H); bx.closePath(); bx.fill();
+    // Chrysler arcs (art deco)
+    bx.strokeStyle='rgba(160,196,232,0.2)'; bx.lineWidth=1;
+    for(let a=0;a<4;a++){
+      bx.beginPath(); bx.arc(crx,H-crh*0.82,12+a*8,-Math.PI*0.7,-Math.PI*0.3); bx.stroke();
+    }
+
+    // Water towers
+    wt.forEach(w=>{
+      bx.fillStyle='#1a0e06'; bx.fillRect(w.x-6,w.y-14,12,14);
+      bx.beginPath(); bx.arc(w.x,w.y-14,8,Math.PI,0); bx.closePath(); bx.fill();
+    });
+
+    // Steam vents
+    steam.forEach(sv=>{
+      for(let i=0;i<4;i++){
+        const sy=H-20-i*15;
+        const sa=Math.max(0,0.15-i*0.04)*Math.sin(t*0.004+sv.seed+i)*0.5+0.5;
+        bx.fillStyle=`rgba(200,210,220,${sa*0.2})`;
+        bx.beginPath(); bx.ellipse(sv.x,sy,6+i*4,4+i*3,0,0,Math.PI*2); bx.fill();
+      }
+    });
+
+    // Yellow cabs
+    cabs.forEach(cab=>{
+      const cx2=((cab.x+t*cab.speed*0.05)%W+W)%W;
+      bx.fillStyle='#c09000'; bx.fillRect(cx2-14,cab.y,28,10);
+      bx.fillStyle='#0a1020'; bx.fillRect(cx2-12,cab.y+2,8,6); bx.fillRect(cx2+4,cab.y+2,8,6);
+    });
+
+    // Road
+    bx.fillStyle='#060c14'; bx.fillRect(0,H-40,W,40);
+    bx.setLineDash([25,18]); bx.strokeStyle='rgba(255,255,0,0.12)'; bx.lineWidth=2;
+    bx.beginPath(); bx.moveTo(0,H-22); bx.lineTo(W,H-22); bx.stroke();
+    bx.setLineDash([]);
+
+    bx.globalAlpha=1;
+  }
+
+  function drawUpperAtmosphere(floor,t){
+    const f=Math.min(1,(floor-50)/50);
+
+    // Cloud layer
+    if(floor<100){
+      const cf=Math.min(1,(floor-50)/30);
+      bx.globalAlpha=cf*0.35;
+      bx.fillStyle='rgba(180,195,215,1)';
+      for(let i=0;i<8;i++){
+        const cx2=((i*W/6+t*0.01)%W+W)%W;
+        bx.beginPath(); bx.ellipse(cx2,H*0.7+Math.sin(i)*30,90+i*20,28,0,0,Math.PI*2); bx.fill();
+        bx.beginPath(); bx.ellipse(cx2+50,H*0.7+30+Math.sin(i+2)*20,70,22,0,0,Math.PI*2); bx.fill();
+      }
+      bx.globalAlpha=1;
+    }
+
+    // Stars fade in
+    const starFade=Math.min(1,(floor-30)/60);
+    if(starFade>0){
+      stars.forEach(s=>{
+        s.tw+=s.sp;
+        const tw=Math.sin(s.tw)*0.3+0.7;
+        bx.fillStyle=`rgba(210,225,245,${s.a*tw*starFade})`;
+        bx.beginPath(); bx.arc(s.x*W,s.y*H,s.r,0,Math.PI*2); bx.fill();
+      });
+    }
+
+    // Earth curve (near space)
+    if(floor>=151){
+      const ef=Math.min(1,(floor-151)/80);
+      bx.strokeStyle=`rgba(99,179,237,${0.2*ef})`;
+      bx.lineWidth=2; bx.beginPath();
+      bx.arc(W/2,H*2.4,H*2.1,-Math.PI*0.8,-Math.PI*0.2); bx.stroke();
+      // Atmosphere halo
+      const ag=bx.createLinearGradient(0,H*0.6,0,H);
+      ag.addColorStop(0,'rgba(99,179,237,0)');
+      ag.addColorStop(1,`rgba(99,179,237,${0.07*ef})`);
+      bx.fillStyle=ag; bx.fillRect(0,H*0.6,W,H*0.4);
+    }
+
+    // Moon
+    if(floor>=501){
+      const mf=Math.min(1,(floor-501)/200);
+      bx.fillStyle=`rgba(210,215,225,${0.08*mf})`;
+      bx.beginPath(); bx.arc(W*0.18,H*0.2,H*0.11,0,Math.PI*2); bx.fill();
+      bx.strokeStyle=`rgba(210,215,225,${0.15*mf})`; bx.lineWidth=1; bx.stroke();
+      // Craters
+      [[0.8,0.6,0.02],[0.4,0.3,0.015],[-0.3,0.7,0.025]].forEach(([dx,dy,r])=>{
+        bx.strokeStyle=`rgba(180,185,195,${0.12*mf})`; bx.lineWidth=0.7;
+        bx.beginPath(); bx.arc(W*0.18+dx*H*0.11,H*0.2+dy*H*0.11,r*H,0,Math.PI*2); bx.stroke();
+      });
+    }
+
+    // Vignette
+    const vg=bx.createRadialGradient(W/2,H/2,H*0.15,W/2,H/2,H*0.9);
+    vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.65)');
+    bx.fillStyle=vg; bx.fillRect(0,0,W,H);
+  }
 
   return {
-    get() {
-      if (identity) return identity;
-      try {
-        const saved = localStorage.getItem('tower_identity');
-        identity = saved ? JSON.parse(saved) : generate();
-        localStorage.setItem('tower_identity', JSON.stringify(identity));
-      } catch(e) {
-        identity = generate();
+    resize(w,h){
+      W=w; H=h;
+      buildTokyo(W,H); buildParis(W,H); buildNYC(W,H);
+    },
+    draw(){
+      bx.clearRect(0,0,W,H);
+      const floor=S.floor, t=S.time;
+      const cityFade=Math.max(0,1-(floor-40)/20);
+
+      if(floor<160){
+        // Fill base sky first
+        if(floor>=50){
+          const sk=bx.createLinearGradient(0,0,0,H);
+          sk.addColorStop(0,'#020810'); sk.addColorStop(1,'#060e18');
+          bx.fillStyle=sk; bx.fillRect(0,0,W,H);
+        }
       }
-      return identity;
+
+      if(S.tower==='tokyo') drawTokyo(t,cityFade);
+      else if(S.tower==='paris') drawParis(t,cityFade);
+      else drawNYC(t,cityFade);
+
+      drawUpperAtmosphere(floor,t);
     }
   };
 })();
 
-/* ── STATE ── Single source of truth ── */
-const STATE = {
-  tower: 'tokyo',
-  floor: 1,
-  stamina: 100,
-  maxStamina: 100,
-  x: 0.5,         // 0–1 normalized position on platform
-  y: 0,           // pixel offset from platform surface (negative = up)
-  vy: 0,
-  onGround: true,
-  isResting: false,
-  facing: 1,
-  dead: false,
-  time: 0,
-  cameraY: 0,
-  messages: [],
-  corpses: [],
-  bridges: [],
-  bridgeCount: 0,
-  particles: [],
-  embers: [],
-  bestFloor: 1,
-  totalBridgesBuilt: 0,
-  jumpBuffered: false,
-  coyoteTime: 0,
-  windOffset: 0,
-  windTarget: 0,
-  ghostPlayers: [],
+/* ═══════════════════════════════════
+   RENDERER MODULE
+   ═══════════════════════════════════ */
+const RENDERER = (()=>{
+  const gc=document.getElementById('game-canvas');
+  const ctx=gc.getContext('2d');
+  let W=0,H=0;
 
-  load() {
-    try {
-      const s = localStorage.getItem(`tower_state_${this.tower}`);
-      if (!s) return;
-      const d = JSON.parse(s);
-      this.floor = d.floor || 1;
-      this.stamina = d.stamina || 100;
-      this.messages = d.messages || [];
-      this.corpses = d.corpses || [];
-      this.bridges = d.bridges || [];
-      this.bridgeCount = d.bridgeCount || 0;
-      this.bestFloor = d.bestFloor || 1;
-      this.totalBridgesBuilt = d.totalBridgesBuilt || 0;
-    } catch(e) {}
-  },
+  function resize(w,h){ W=w; H=h; gc.width=w; gc.height=h; }
 
-  save() {
-    try {
-      localStorage.setItem(`tower_state_${this.tower}`, JSON.stringify({
-        floor: this.floor,
-        stamina: this.stamina,
-        messages: this.messages,
-        corpses: this.corpses,
-        bridges: this.bridges,
-        bridgeCount: this.bridgeCount,
-        bestFloor: this.bestFloor,
-        totalBridgesBuilt: this.totalBridgesBuilt
-      }));
-    } catch(e) {}
-  },
-
-  reset() {
-    this.x = 0.5; this.y = 0; this.vy = 0;
-    this.onGround = true; this.dead = false;
-    this.isResting = false; this.embers = [];
-    this.particles = []; this.jumpBuffered = false;
-    this.coyoteTime = 0;
-  }
-};
-
-/* ── RENDERER MODULE ── */
-const RENDERER = (() => {
-  const bgCanvas  = document.getElementById('bg-canvas');
-  const gameCanvas= document.getElementById('game-canvas');
-  const bgCtx     = bgCanvas.getContext('2d');
-  const ctx       = gameCanvas.getContext('2d');
-
-  let W = 0, H = 0;
-
-  // Starfield — generated once
-  const STARS = Array.from({length: 300}, () => ({
-    x: Math.random(), y: Math.random(),
-    r: Math.random() * 1.5 + 0.3,
-    a: Math.random() * 0.7 + 0.2,
-    tw: Math.random() * Math.PI * 2,
-    speed: Math.random() * 0.002 + 0.0005
-  }));
-
-  // City buildings — generated once per tower
-  let buildings = [];
-  function genBuildings() {
-    buildings = Array.from({length: 35}, () => ({
-      x: Math.random(),
-      w: 0.025 + Math.random() * 0.04,
-      h: 0.08 + Math.random() * 0.28,
-      windowRows: Math.floor(Math.random() * 6 + 2)
-    }));
+  /* Platform layout: platforms alternate left/center/right with stagger */
+  function getPlatform(floor){
+    // Deterministic stagger per floor
+    const pat=[0.5,0.25,0.72,0.5,0.3,0.68,0.5,0.2,0.75]; // center offsets
+    const cx=pat[floor%pat.length];
+    const pw=PHY.platformW(floor);
+    return {cx, pw, x:W*cx-pw/2, y:W*cx+pw/2};
   }
 
-  function resize() {
-    W = bgCanvas.width = gameCanvas.width = window.innerWidth;
-    H = bgCanvas.height = gameCanvas.height = window.innerHeight;
+  /* World-to-screen Y: camera anchors player ~60% down screen */
+  function worldY(floorNum, offset=0){
+    // world Y = floorNum * FLOOR_H (platform TOP)
+    return (floorNum * PHY.FLOOR_H) - S.camY + offset;
   }
 
-  function drawBackground() {
-    const tower = WORLD.towers[STATE.tower];
-    const phase = WORLD.getPhase(STATE.floor);
-    const t = STATE.time;
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const tw=WORLD.towers[S.tower];
 
-    // Sky gradient
-    const sky = bgCtx.createLinearGradient(0, 0, 0, H);
-    sky.addColorStop(0, tower.skyGradient[0]);
-    sky.addColorStop(0.5, tower.skyGradient[1]);
-    sky.addColorStop(1, tower.skyGradient[2]);
-    bgCtx.fillStyle = sky;
-    bgCtx.fillRect(0, 0, W, H);
+    // How many floors visible
+    const topFloor=Math.floor(S.camY/PHY.FLOOR_H)-2;
+    const botFloor=Math.ceil((S.camY+H)/PHY.FLOOR_H)+2;
 
-    // Stars (fade in as floor increases)
-    const starOpacity = Math.min(1, STATE.floor / 30);
-    STARS.forEach(s => {
-      s.tw += s.speed;
-      const twinkle = Math.sin(s.tw) * 0.3 + 0.7;
-      bgCtx.fillStyle = `rgba(200,215,235,${s.a * twinkle * starOpacity})`;
-      bgCtx.beginPath();
-      bgCtx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
-      bgCtx.fill();
-    });
+    /* ── Wall verticals (draw once full height) ── */
+    const wallL=W*0.08, wallR=W*0.92;
+    ctx.strokeStyle=tw.lattice; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(wallL,0); ctx.lineTo(wallL,H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(wallR,0); ctx.lineTo(wallR,H); ctx.stroke();
 
-    // City phase — buildings
-    if (STATE.floor < 60) {
-      const cityFade = Math.max(0, 1 - (STATE.floor - 40) / 20);
-      buildings.forEach(b => {
-        const bx = b.x * W;
-        const bw = b.w * W;
-        const bh = b.h * H;
-        const by = H - bh;
+    /* ── Cross-bracing ── */
+    for(let f=topFloor;f<=botFloor;f++){
+      const wy=worldY(f);
+      ctx.strokeStyle=tw.lattice; ctx.lineWidth=0.8;
+      ctx.beginPath(); ctx.moveTo(wallL,wy); ctx.lineTo(wallR,wy+PHY.FLOOR_H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(wallR,wy); ctx.lineTo(wallL,wy+PHY.FLOOR_H); ctx.stroke();
+    }
 
-        bgCtx.fillStyle = tower.buildingPalette[Math.floor(b.x * tower.buildingPalette.length)];
-        bgCtx.globalAlpha = cityFade;
-        bgCtx.fillRect(bx, by, bw, bh);
+    /* ── Platforms, bridges, messages, corpses ── */
+    for(let f=topFloor;f<=botFloor;f++){
+      if(f<1) continue;
+      const {cx,pw}=getPlatform(f);
+      const platX=W*cx-pw/2;
+      const wy=worldY(f);
 
-        // Windows
-        const rowH = bh / b.windowRows;
-        for (let row = 0; row < b.windowRows; row++) {
-          const cols = Math.floor(bw / 9);
-          for (let col = 0; col < cols; col++) {
-            if (Math.sin(b.x * 100 + row * 17 + col * 7) > 0.1) {
-              bgCtx.fillStyle = tower.windowColor;
-              bgCtx.globalAlpha = cityFade * (0.2 + Math.sin(t * 0.0005 + row + col) * 0.1 + 0.1);
-              bgCtx.fillRect(bx + col * 9 + 3, by + row * rowH + 5, 5, 7);
-            }
-          }
-        }
-        bgCtx.globalAlpha = 1;
+      /* Platform underglow */
+      const ug=ctx.createLinearGradient(platX,wy,platX,wy+18);
+      ug.addColorStop(0,tw.platformEdge+'28'); ug.addColorStop(1,'transparent');
+      ctx.fillStyle=ug; ctx.fillRect(platX,wy,pw,18);
+
+      /* Platform slab */
+      ctx.fillStyle=tw.platform; ctx.fillRect(platX,wy,pw,10);
+      /* Edge glow — top */
+      ctx.fillStyle=tw.platformEdge; ctx.globalAlpha=0.65;
+      ctx.fillRect(platX,wy,pw,2); ctx.globalAlpha=1;
+
+      /* Floor number */
+      ctx.fillStyle='rgba(255,255,255,0.06)';
+      ctx.font='8px DM Mono,monospace'; ctx.textAlign='right';
+      ctx.fillText('F'+f, wallL-5, wy+7);
+
+      /* ── Bridges from this floor to f+1 ── */
+      const bridges=S.bridges.filter(b=>b.from===f&&b.tower===S.tower);
+      bridges.forEach(br=>{
+        drawBridge(br, f, wy, platX, pw);
+      });
+
+      /* ── Messages ── */
+      S.messages.filter(m=>m.floor===f&&m.tower===S.tower).forEach(m=>{
+        const mx=platX+m.px*pw;
+        ctx.globalAlpha=0.5; ctx.fillStyle=tw.color;
+        ctx.font='italic 11px "Cormorant Garamond",serif';
+        ctx.textAlign='center';
+        ctx.fillText('"'+m.text+'"',mx,wy-10);
+        ctx.globalAlpha=1;
+      });
+
+      /* ── Corpses ── */
+      S.corpses.filter(c=>c.floor===f&&c.tower===S.tower).forEach(c=>{
+        const cx3=platX+c.px*pw;
+        // Fallen body
+        ctx.strokeStyle='rgba(150,40,40,0.7)'; ctx.lineWidth=2; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(cx3-10,wy); ctx.lineTo(cx3+8,wy); ctx.stroke();
+        ctx.fillStyle='rgba(150,40,40,0.7)';
+        ctx.beginPath(); ctx.arc(cx3+12,wy-3,3.5,0,Math.PI*2); ctx.fill();
+        // Soul rise
+        const sy=wy-16-Math.sin(S.time*0.001+c.px*10)*6;
+        const sg=ctx.createRadialGradient(cx3,sy,0,cx3,sy,12);
+        sg.addColorStop(0,'rgba(252,129,129,0.18)'); sg.addColorStop(1,'transparent');
+        ctx.fillStyle=sg; ctx.beginPath(); ctx.arc(cx3,sy,12,0,Math.PI*2); ctx.fill();
+      });
+
+      /* ── Ghost players ── */
+      S.ghosts.filter(g=>g.floor===f).forEach(g=>{
+        const gx=platX+g.px*pw;
+        drawSilhouette(ctx,gx,wy,g.color,0.28,1,false,false);
       });
     }
 
-    // Near-space earth curve
-    if (STATE.floor >= 151 && STATE.floor < 500) {
-      const fade = Math.min(1, (STATE.floor - 151) / 60);
-      bgCtx.strokeStyle = `rgba(79,209,197,${0.15 * fade})`;
-      bgCtx.lineWidth = 1.5;
-      bgCtx.beginPath();
-      bgCtx.arc(W / 2, H * 2.2, H * 1.8, -Math.PI * 0.85, -Math.PI * 0.15);
-      bgCtx.stroke();
-
-      const atmoGrad = bgCtx.createLinearGradient(0, H * 0.65, 0, H);
-      atmoGrad.addColorStop(0, 'rgba(79,209,197,0)');
-      atmoGrad.addColorStop(1, `rgba(79,209,197,${0.06 * fade})`);
-      bgCtx.fillStyle = atmoGrad;
-      bgCtx.fillRect(0, H * 0.65, W, H * 0.35);
-    }
-
-    // Moon phase
-    if (STATE.floor >= 501 && STATE.floor < 1500) {
-      const fade = Math.min(1, (STATE.floor - 501) / 150);
-      bgCtx.fillStyle = `rgba(200,210,220,${0.06 * fade})`;
-      bgCtx.beginPath();
-      bgCtx.arc(W * 0.15, H * 0.2, H * 0.12, 0, Math.PI * 2);
-      bgCtx.fill();
-      bgCtx.strokeStyle = `rgba(200,210,220,${0.12 * fade})`;
-      bgCtx.lineWidth = 1;
-      bgCtx.stroke();
-    }
-
-    // Vignette — always
-    const vig = bgCtx.createRadialGradient(W/2, H/2, H * 0.2, W/2, H/2, H);
-    vig.addColorStop(0, 'rgba(0,0,0,0)');
-    vig.addColorStop(1, 'rgba(0,0,0,0.7)');
-    bgCtx.fillStyle = vig;
-    bgCtx.fillRect(0, 0, W, H);
-  }
-
-  function drawTower() {
-    const tower = WORLD.towers[STATE.tower];
-    const cx = W / 2 + STATE.windOffset * 0.3;
-    const phaseFloor = Math.floor(STATE.cameraY / PHYSICS.FLOOR_H);
-    const visCount = Math.ceil(H / PHYSICS.FLOOR_H) + 3;
-
-    ctx.clearRect(0, 0, W, H);
-
-    // Tower wall lattice
-    const towerW = 500;
-    ctx.strokeStyle = tower.latticeColor;
-    ctx.lineWidth = 1;
-
-    for (let i = -1; i < visCount + 1; i++) {
-      const fy = (phaseFloor + i) * PHYSICS.FLOOR_H - STATE.cameraY;
-      const pw = PHYSICS.getPlatformWidth((phaseFloor + i));
-      const halfW = Math.min(towerW / 2, pw * 1.6);
-
-      // Lattice cross-braces
-      for (let j = 0; j < 3; j++) {
-        const y1 = fy + (j / 3) * PHYSICS.FLOOR_H;
-        const y2 = fy + ((j + 1) / 3) * PHYSICS.FLOOR_H;
-        ctx.beginPath();
-        ctx.moveTo(cx - halfW, y1); ctx.lineTo(cx + halfW, y2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx + halfW, y1); ctx.lineTo(cx - halfW, y2);
-        ctx.stroke();
-      }
-    }
-
-    // Platforms + content
-    for (let i = -1; i < visCount + 1; i++) {
-      const floorNum = phaseFloor + i;
-      if (floorNum < 0) continue;
-      const fy = floorNum * PHYSICS.FLOOR_H - STATE.cameraY;
-      const pw = PHYSICS.getPlatformWidth(floorNum);
-      const px = cx - pw / 2;
-
-      if (fy < -PHYSICS.FLOOR_H || fy > H + PHYSICS.FLOOR_H) continue;
-
-      // Platform glow under
-      const glowGrad = ctx.createLinearGradient(px, fy, px, fy + 20);
-      glowGrad.addColorStop(0, tower.platformEdge + '30');
-      glowGrad.addColorStop(1, 'transparent');
-      ctx.fillStyle = glowGrad;
-      ctx.fillRect(px, fy, pw, 20);
-
-      // Platform slab
-      ctx.fillStyle = tower.platformColor;
-      ctx.fillRect(px, fy, pw, 10);
-
-      // Platform top edge
-      ctx.fillStyle = tower.platformEdge;
-      ctx.globalAlpha = 0.7;
-      ctx.fillRect(px, fy, pw, 2);
-      ctx.globalAlpha = 1;
-
-      // Floor number on wall
-      ctx.fillStyle = 'rgba(255,255,255,0.07)';
-      ctx.font = '9px DM Mono, monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText('F' + floorNum, cx - pw / 2 - 8, fy + 6);
-
-      // Messages on this floor
-      STATE.messages.filter(m => m.floor === floorNum && m.tower === STATE.tower).forEach(m => {
-        const msgX = cx - pw / 2 + m.x * pw;
-        ctx.globalAlpha = 0.55;
-        ctx.fillStyle = tower.color;
-        ctx.font = 'italic 11px "Playfair Display", serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`"${m.text}"`, msgX, fy - 12);
-        ctx.globalAlpha = 1;
-      });
-
-      // Corpses on this floor
-      STATE.corpses.filter(c => c.floor === floorNum && c.tower === STATE.tower).forEach(c => {
-        const cx2 = cx - pw / 2 + c.x * pw;
-
-        // Fallen figure
-        ctx.strokeStyle = '#742a2a';
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        // body lying on ground
-        ctx.beginPath(); ctx.moveTo(cx2 - 10, fy - 1); ctx.lineTo(cx2 + 10, fy - 1); ctx.stroke();
-        // head
-        ctx.fillStyle = '#742a2a';
-        ctx.beginPath(); ctx.arc(cx2 + 12, fy - 3, 4, 0, Math.PI * 2); ctx.fill();
-
-        // Soul glow — rising
-        const soulY = fy - 20 - Math.sin(STATE.time * 0.001 + c.x * 10) * 8;
-        const soulGrad = ctx.createRadialGradient(cx2, soulY, 0, cx2, soulY, 14);
-        soulGrad.addColorStop(0, 'rgba(252,129,129,0.15)');
-        soulGrad.addColorStop(1, 'transparent');
-        ctx.fillStyle = soulGrad;
-        ctx.beginPath(); ctx.arc(cx2, soulY, 14, 0, Math.PI * 2); ctx.fill();
-      });
-
-      // Bridges from this floor
-      STATE.bridges.filter(b => b.from === floorNum && b.tower === STATE.tower).forEach(b => {
-        const bx = cx - pw / 2 + b.x * pw;
-        const nextPw = PHYSICS.getPlatformWidth(floorNum + 1);
-        const nextFy = (floorNum + 1) * PHYSICS.FLOOR_H - STATE.cameraY;
-        const nextPx = cx - nextPw / 2;
-        const endX = nextPx + b.x * nextPw;
-
-        const isMine = b.builder === IDENTITY.get().id;
-        const isGold = b.uses >= 1000;
-        const ropeColor = isGold ? '#d4a017' : (isMine ? tower.color : '#8a6a4a');
-
-        if (b.type === 'rope') {
-          const sway = Math.sin(STATE.time * 0.002 + b.x * 5) * 4;
-          ctx.strokeStyle = ropeColor;
-          ctx.lineWidth = 1.5;
-          ctx.setLineDash([4, 3]);
-          // Two ropes
-          ctx.beginPath(); ctx.moveTo(bx - 8, fy); ctx.lineTo(endX - 8 + sway, nextFy); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(bx + 8, fy); ctx.lineTo(endX + 8 + sway, nextFy); ctx.stroke();
-          ctx.setLineDash([]);
-          // Rungs
-          for (let r = 0; r < 7; r++) {
-            const t2 = r / 7;
-            const rx = bx + t2 * (endX - bx) + sway * t2;
-            const ry = fy + t2 * (nextFy - fy);
-            ctx.fillStyle = ropeColor;
-            ctx.globalAlpha = 0.5;
-            ctx.fillRect(rx - 10, ry - 1, 20, 2);
-            ctx.globalAlpha = 1;
-          }
-        } else if (b.type === 'plank') {
-          ctx.strokeStyle = ropeColor;
-          ctx.lineWidth = 3;
-          ctx.lineCap = 'round';
-          ctx.beginPath(); ctx.moveTo(bx, fy); ctx.lineTo(endX, nextFy); ctx.stroke();
-          // Planks
-          for (let p = 0; p < 5; p++) {
-            const t2 = p / 5;
-            const ppx = bx + t2 * (endX - bx);
-            const ppy = fy + t2 * (nextFy - fy);
-            ctx.globalAlpha = 0.6;
-            ctx.fillStyle = '#8a5a30';
-            ctx.save();
-            ctx.translate(ppx, ppy);
-            ctx.rotate(Math.atan2(nextFy - fy, endX - bx) + Math.PI / 2);
-            ctx.fillRect(-8, -2, 16, 4);
-            ctx.restore();
-            ctx.globalAlpha = 1;
-          }
-        } else { // stone
-          ctx.strokeStyle = isGold ? '#d4a017' : '#607080';
-          ctx.lineWidth = 5;
-          ctx.lineCap = 'round';
-          ctx.beginPath(); ctx.moveTo(bx, fy); ctx.lineTo(endX, nextFy); ctx.stroke();
-          if (isGold) {
-            ctx.strokeStyle = 'rgba(212,160,23,0.3)';
-            ctx.lineWidth = 12;
-            ctx.stroke();
-          }
-        }
-
-        // Builder ID tag
-        if (isMine) {
-          ctx.globalAlpha = 0.4;
-          ctx.fillStyle = tower.color;
-          ctx.font = '8px DM Mono, monospace';
-          ctx.textAlign = 'center';
-          ctx.fillText('YOURS', bx + (endX - bx) / 2, fy + (nextFy - fy) / 2 - 6);
-          ctx.globalAlpha = 1;
-        }
-      });
-
-      // Ghost players
-      STATE.ghostPlayers.filter(g => g.floor === floorNum).forEach(g => {
-        const gx = cx - pw / 2 + g.x * pw;
-        const gy = fy + Math.sin(STATE.time * 0.001 + g.seed) * 2;
-        drawSilhouette(ctx, gx, gy, g.color, 0.35, 1, false);
-      });
-    }
-
-    // ── PLAYER ──
-    if (!STATE.dead) drawPlayer(ctx, cx);
-
-    // ── PARTICLES ──
+    /* ── PLAYER ── */
+    if(!S.dead) drawPlayer(ctx);
     drawParticles(ctx);
   }
 
-  function drawPlayer(ctx, cx) {
-    const tower = WORLD.towers[STATE.tower];
-    const pw = PHYSICS.getPlatformWidth(STATE.floor);
-    const px = cx - pw / 2 + STATE.x * pw;
-    const floorScreenY = STATE.floor * PHYSICS.FLOOR_H - STATE.cameraY;
-    const py = floorScreenY + STATE.y;
+  function drawBridge(br, fromFloor, fromY, platX, pw){
+    const {cx:ncx, pw:npw}=getPlatform(fromFloor+1);
+    const toY=worldY(fromFloor+1);
+    const startX=platX+br.px*pw;
+    const endX=W*ncx-npw/2+br.px*npw;
 
-    const identity = IDENTITY.get();
-    const t = STATE.time;
-    const speed = Math.abs(STATE.x - 0.5);
+    const isMine=br.builder===IDENTITY.get()?.name;
+    const isGold=br.uses>=1000;
+    const tw=WORLD.towers[S.tower];
 
-    // Lantern pulsing
-    const pulse = Math.sin(t * 0.004) * 0.12 + 0.88;
-    const lanternX = px + STATE.facing * 14;
-    const lanternY = py - 24;
-    const lanternColor = tower.color;
+    const col=isGold?'#d4a637':isMine?tw.color:'#7a6050';
 
-    // Lantern outer glow
-    for (let r = 60; r >= 10; r -= 10) {
-      const alpha = (0.4 - r / 150) * pulse * 0.8;
-      ctx.fillStyle = `${lanternColor}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
-      ctx.beginPath();
-      ctx.arc(lanternX, lanternY, r, 0, Math.PI * 2);
-      ctx.fill();
+    ctx.lineCap='round'; ctx.lineJoin='round';
+
+    if(br.type==='rope'){
+      const sway=Math.sin(S.time*0.002+br.px*6)*5;
+      ctx.strokeStyle=col; ctx.lineWidth=1.5;
+      ctx.setLineDash([5,4]);
+      // Two rope sides
+      ctx.beginPath(); ctx.moveTo(startX-8,fromY); ctx.lineTo(endX-8+sway,toY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(startX+8,fromY); ctx.lineTo(endX+8+sway,toY); ctx.stroke();
+      ctx.setLineDash([]);
+      // Rungs
+      for(let i=1;i<9;i++){
+        const t2=i/9;
+        const rx=startX+(endX-startX)*t2+sway*t2;
+        const ry=fromY+(toY-fromY)*t2;
+        ctx.globalAlpha=0.55; ctx.fillStyle=col;
+        ctx.fillRect(rx-9,ry-1,18,2); ctx.globalAlpha=1;
+      }
+    } else if(br.type==='plank'){
+      // Diagonal plank beams
+      ctx.strokeStyle=col; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(startX,fromY); ctx.lineTo(endX,toY); ctx.stroke();
+      ctx.lineWidth=1.5; ctx.strokeStyle='rgba(200,150,80,0.4)';
+      ctx.beginPath(); ctx.moveTo(startX-5,fromY); ctx.lineTo(endX-5,toY); ctx.stroke();
+      // Planks across
+      for(let i=0;i<6;i++){
+        const t2=i/6;
+        const px2=startX+(endX-startX)*t2;
+        const py2=fromY+(toY-fromY)*t2;
+        ctx.save(); ctx.translate(px2,py2);
+        ctx.rotate(Math.atan2(toY-fromY,endX-startX)+Math.PI/2);
+        ctx.fillStyle='rgba(180,110,50,0.5)'; ctx.fillRect(-9,-2,18,4); ctx.restore();
+      }
+    } else { // stone
+      const grad=ctx.createLinearGradient(startX,fromY,endX,toY);
+      grad.addColorStop(0,col+'aa'); grad.addColorStop(0.5,col); grad.addColorStop(1,col+'aa');
+      ctx.strokeStyle=grad; ctx.lineWidth=isGold?7:5;
+      ctx.beginPath(); ctx.moveTo(startX,fromY); ctx.lineTo(endX,toY); ctx.stroke();
+      if(isGold){ctx.strokeStyle='rgba(212,166,55,0.25)'; ctx.lineWidth=14; ctx.stroke();}
     }
 
-    // Light cone
-    const coneGrad = ctx.createRadialGradient(lanternX, lanternY, 0, lanternX, lanternY, 90);
-    coneGrad.addColorStop(0, `${tower.color}18`);
-    coneGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = coneGrad;
-    ctx.save();
-    ctx.translate(lanternX, lanternY);
-    ctx.rotate(STATE.facing > 0 ? -0.3 : Math.PI + 0.3);
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(-40, -80);
-    ctx.lineTo(40, -80);
-    ctx.closePath();
-    ctx.fill();
+    // "YOURS" label
+    if(isMine){
+      const mx=(startX+endX)/2, my=(fromY+toY)/2;
+      ctx.globalAlpha=0.38; ctx.fillStyle=tw.color;
+      ctx.font='7px DM Mono,monospace'; ctx.textAlign='center';
+      ctx.fillText('YOURS',mx,my-5); ctx.globalAlpha=1;
+    }
+  }
+
+  function drawPlayer(ctx){
+    const tw=WORLD.towers[S.tower];
+    const {cx,pw}=getPlatform(S.floor);
+    const platX=W*cx-pw/2;
+    const screenX=platX+S.px*pw;
+    const platY=worldY(S.floor);
+    const screenY=platY+S.py; // py is negative when in air
+
+    const t=S.time;
+    const identity=IDENTITY.get();
+    const lanternCol=identity?identity.color:tw.color;
+
+    // Lantern glow (multi-ring)
+    const pulse=Math.sin(t*0.004)*0.12+0.88;
+    const lx=screenX+S.facing*15, ly=screenY-26;
+    for(let r=64;r>=10;r-=12){
+      const a=(0.38-r/170)*pulse;
+      ctx.fillStyle=lanternCol+(Math.floor(Math.max(0,a)*255).toString(16).padStart(2,'0'));
+      ctx.beginPath(); ctx.arc(lx,ly,r,0,Math.PI*2); ctx.fill();
+    }
+
+    // Light cone ahead
+    ctx.save(); ctx.translate(lx,ly);
+    ctx.rotate(S.facing>0?-0.25:Math.PI+0.25);
+    const cone=ctx.createRadialGradient(0,0,0,0,0,80);
+    cone.addColorStop(0,lanternCol+'15'); cone.addColorStop(1,'transparent');
+    ctx.fillStyle=cone;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-50,-85); ctx.lineTo(50,-85); ctx.closePath(); ctx.fill();
     ctx.restore();
 
-    // Silhouette
-    drawSilhouette(ctx, px, py, '#e8eef8', 1, STATE.facing, !STATE.onGround);
+    drawSilhouette(ctx,screenX,screenY,'#dde6f4',1,S.facing,!S.onGround,S.isResting);
 
-    // Identity lantern dot
-    ctx.fillStyle = identity.color;
-    ctx.beginPath();
-    ctx.arc(lanternX, lanternY, 4.5, 0, Math.PI * 2);
-    ctx.fill();
+    // Lantern dot
+    ctx.fillStyle=lanternCol;
+    ctx.beginPath(); ctx.arc(lx,ly,4,0,Math.PI*2); ctx.fill();
 
     // Embers
-    if (Math.random() < 0.12) {
-      STATE.embers.push({
-        x: lanternX + (Math.random() - 0.5) * 16,
-        y: lanternY + (Math.random() - 0.5) * 8,
-        vx: (Math.random() - 0.5) * 0.8,
-        vy: -Math.random() * 1.5 - 0.5,
-        life: 1, size: Math.random() * 2 + 0.5,
-        color: tower.color
-      });
+    if(Math.random()<0.14){
+      S.embers.push({x:lx+(Math.random()-.5)*18,y:ly+(Math.random()-.5)*10,
+        vx:(Math.random()-.5)*0.9+S.windOff*0.025,vy:-Math.random()*1.8-0.5,
+        life:1,size:Math.random()*2+0.5,col:lanternCol});
     }
-
-    STATE.embers = STATE.embers.filter(e => {
-      e.life -= 0.016;
-      e.x += e.vx + STATE.windOffset * 0.02;
-      e.y += e.vy;
-      e.vy += 0.04;
-      if (e.life <= 0) return false;
-      ctx.globalAlpha = e.life * 0.9;
-      ctx.fillStyle = e.color;
-      ctx.beginPath();
-      ctx.arc(e.x, e.y, e.size * e.life, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      return true;
+    S.embers=S.embers.filter(e=>{
+      e.life-=0.017; e.x+=e.vx; e.y+=e.vy; e.vy+=0.05;
+      if(e.life<=0) return false;
+      ctx.globalAlpha=e.life*0.85;
+      ctx.fillStyle=e.col; ctx.beginPath();
+      ctx.arc(e.x,e.y,e.size*e.life,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1; return true;
     });
   }
 
-  function drawSilhouette(ctx, x, y, color, alpha, facing, airborne) {
-    const t = STATE.time;
-    const legWiggle = airborne ? Math.sin(t * 0.012) * 6 : 0;
-    const bodyLean = facing * 2;
+  function drawSilhouette(ctx,x,y,color,alpha,facing,airborne,resting){
+    const t=S.time;
+    const legSwing=airborne?Math.sin(t*0.015)*8:0;
+    const lean=facing*2.5;
 
-    ctx.globalAlpha = alpha;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    ctx.globalAlpha=alpha; ctx.strokeStyle=color;
+    ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round';
 
-    // Legs
-    ctx.beginPath();
-    ctx.moveTo(x - 3, y);
-    ctx.lineTo(x - 5 + legWiggle, y + 14);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x + 3, y);
-    ctx.lineTo(x + 5 - legWiggle, y + 14);
-    ctx.stroke();
-
-    // Torso
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + bodyLean, y - 22);
-    ctx.stroke();
-
-    // Arms
-    ctx.beginPath();
-    ctx.moveTo(x + bodyLean, y - 16);
-    ctx.lineTo(x + facing * 13, y - 26);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x + bodyLean, y - 16);
-    ctx.lineTo(x - facing * 7, y - 22);
-    ctx.stroke();
-
-    // Head
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x + bodyLean + facing * 2, y - 30, 6, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.globalAlpha = 1;
+    if(resting){
+      // Crouched: legs bent, arms down
+      ctx.beginPath(); ctx.moveTo(x-6,y); ctx.lineTo(x-8,y+10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+6,y); ctx.lineTo(x+8,y+10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+lean,y-14); ctx.stroke();
+      ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x+lean+facing,y-20,6,0,Math.PI*2); ctx.fill();
+    } else {
+      // Legs
+      ctx.beginPath(); ctx.moveTo(x-3,y); ctx.lineTo(x-5+legSwing,y+14); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+3,y); ctx.lineTo(x+5-legSwing,y+14); ctx.stroke();
+      // Torso
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+lean,y-22); ctx.stroke();
+      // Arms
+      ctx.beginPath(); ctx.moveTo(x+lean,y-16); ctx.lineTo(x+facing*14,y-26+(airborne?-4:0)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+lean,y-16); ctx.lineTo(x-facing*8,y-22); ctx.stroke();
+      // Head
+      ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x+lean+facing*2,y-30,6,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1;
   }
 
-  function drawParticles(ctx) {
-    STATE.particles = STATE.particles.filter(p => {
-      p.life -= 0.025;
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.1;
-      if (p.life <= 0) return false;
-      ctx.globalAlpha = p.life;
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      return true;
+  function drawParticles(ctx){
+    S.particles=S.particles.filter(p=>{
+      p.life-=0.025; p.x+=p.vx; p.y+=p.vy; p.vy+=0.1;
+      if(p.life<=0) return false;
+      ctx.globalAlpha=p.life;
+      ctx.fillStyle=p.col; ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1; return true;
     });
   }
 
-  function spawnParticles(x, y, color, count) {
-    for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 3 + 1;
-      STATE.particles.push({
-        x, y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 2,
-        life: 1,
-        r: Math.random() * 3 + 1,
-        color
-      });
+  function spawnParticles(x,y,col,n){
+    for(let i=0;i<n;i++){
+      const a=Math.random()*Math.PI*2, sp=Math.random()*3+1;
+      S.particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2,life:1,r:Math.random()*3+1,col});
     }
   }
 
   return {
-    get W() { return W; },
-    get H() { return H; },
-    resize() { resize(); genBuildings(); },
-    drawBackground,
-    drawTower,
-    spawnParticles
+    get W(){return W}, get H(){return H},
+    resize, draw, getPlatform, worldY, spawnParticles
+  };
+})();
+
+/* ── INPUT MODULE ── */
+const INPUT=(()=>{
+  const K={};
+  function init(){
+    window.addEventListener('keydown',e=>{
+      if(S.inputLocked) return; // locked during modals/intro
+      K[e.code]=true;
+      if(e.code==='Space'){e.preventDefault(); S.jumpBuf=12;}
+      if(e.code==='KeyE'&&!S.dead) GAME.openBridgeModal();
+      if(e.code==='KeyF'&&!S.dead) GAME.openMsgModal();
+    });
+    window.addEventListener('keyup',e=>{K[e.code]=false;});
+
+    // Touch
+    const bind=(id,dn,up)=>{
+      const el=document.getElementById(id); if(!el)return;
+      const d=(e)=>{e.preventDefault();dn&&dn();};
+      const u=(e)=>{e.preventDefault();up&&up();};
+      el.addEventListener('touchstart',d,{passive:false});
+      el.addEventListener('touchend',u,{passive:false});
+      el.addEventListener('mousedown',d); el.addEventListener('mouseup',u);
+    };
+    bind('tl',()=>K['KeyA']=true,()=>K['KeyA']=false);
+    bind('tr',()=>K['KeyD']=true,()=>K['KeyD']=false);
+    bind('tj',()=>S.jumpBuf=12,()=>{});
+    bind('trest',()=>K['KeyR']=true,()=>K['KeyR']=false);
+  }
+  return {
+    init,
+    left:()=>K['KeyA']||K['ArrowLeft'],
+    right:()=>K['KeyD']||K['ArrowRight'],
+    rest:()=>K['KeyR'],
+    camp:()=>K['KeyC'],
   };
 })();
 
 /* ── UI MODULE ── */
-const UI = (() => {
-  const elFloor    = document.getElementById('hud-floor');
-  const elStamina  = document.getElementById('hud-stamina');
-  const elStamFill = document.getElementById('stamina-fill');
-  const elBridges  = document.getElementById('hud-bridges');
-  const elPhase    = document.getElementById('phase-pill');
-  const elAscentF  = document.getElementById('ascent-fill');
-  const elMsgNotif = document.getElementById('msg-notif');
-  let notifTimeout = null;
+const UI=(()=>{
+  let notifT=null;
+  let campHoldTimer=null;
 
-  function update() {
-    const phase = WORLD.getPhase(STATE.floor);
-    elFloor.textContent = STATE.floor.toString().padStart(3, '0');
-    elBridges.textContent = STATE.bridgeCount;
-    elPhase.textContent = phase.name;
+  function update(){
+    const tw=WORLD.towers[S.tower];
+    const st=Math.max(0,Math.round(S.stamina));
+    const phase=WORLD.getPhase(S.floor);
 
-    const st = Math.round(STATE.stamina);
-    elStamina.textContent = st;
-    elStamFill.style.width = st + '%';
-    elStamFill.style.background = st < 20 ? '#fc8181' : st < 45 ? '#f6ad55' : WORLD.towers[STATE.tower].color;
-    elStamina.className = 'hud-val ' + (st < 20 ? 'danger' : st < 45 ? 'warm' : '');
+    document.getElementById('hv-floor').textContent=S.floor.toString().padStart(3,'0');
+    document.getElementById('hv-best').textContent=S.bestFloor.toString().padStart(3,'0');
+    document.getElementById('hv-br').textContent=S.bridgeCount;
+    document.getElementById('hv-st').textContent=st;
+    document.getElementById('phase-bar').textContent=phase.name;
 
-    const maxFloor = 1000;
-    elAscentF.style.height = Math.min(100, (STATE.floor / maxFloor) * 100) + '%';
+    const sf=document.getElementById('st-fill');
+    sf.style.width=st+'%';
+    sf.style.background=st<20?'#fc8181':st<45?'#f6ad55':tw.color;
+    document.getElementById('hv-st').className='hv '+(st<20?'dn':st<45?'wm':'');
 
-    // Stamina vignette warning
-    const vig = document.getElementById('vig-overlay');
-    if (vig) {
-      vig.style.opacity = st < 20 ? (0.15 + Math.sin(Date.now() * 0.008) * 0.1).toString() : '0';
-    }
+    // Mode display
+    const elapsed=(Date.now()-S.sessionStart)/60000;
+    const mode=elapsed<30?'Sprint':elapsed<120?'Expedition':'Architect';
+    document.getElementById('hv-mode').textContent=mode;
+
+    // Vignette
+    document.getElementById('vig').style.opacity=st<20?(0.15+Math.sin(Date.now()*0.008)*0.1).toFixed(3):'0';
+
+    // Ascent
+    document.getElementById('ascent-fill').style.height=Math.min(100,(S.floor/800)*100)+'%';
   }
 
-  function showNotif(text, duration = 4000) {
-    elMsgNotif.textContent = text;
-    elMsgNotif.style.opacity = '1';
-    clearTimeout(notifTimeout);
-    notifTimeout = setTimeout(() => { elMsgNotif.style.opacity = '0'; }, duration);
+  function notif(msg,dur=4500){
+    const el=document.getElementById('notif');
+    el.textContent=msg; el.style.opacity='1';
+    clearTimeout(notifT);
+    notifT=setTimeout(()=>el.style.opacity='0',dur);
   }
 
-  function showDeath(floor) {
-    const epitaph = WORLD.epitaphs[Math.floor(Math.random() * WORLD.epitaphs.length)];
-    document.getElementById('death-epitaph').textContent = epitaph;
-    document.getElementById('death-floor-num').textContent = floor;
-    document.getElementById('death-screen').style.display = 'flex';
+  function showDeath(floor){
+    const ep=WORLD.epitaphs[Math.floor(Math.random()*WORLD.epitaphs.length)];
+    document.getElementById('death-epi').textContent=ep;
+    document.getElementById('death-num').textContent=floor;
+    document.getElementById('death').style.display='flex';
   }
 
-  function hideDeath() {
-    document.getElementById('death-screen').style.display = 'none';
+  function hideDeath(){document.getElementById('death').style.display='none';}
+
+  function updateClimberTag(){
+    const id=IDENTITY.get();
+    if(!id) return;
+    document.getElementById('ctag-dot').style.background=id.color;
+    document.getElementById('ctag-name').textContent=id.name.toUpperCase();
   }
 
-  function setupIdentity() {
-    const id = IDENTITY.get();
-    document.getElementById('id-dot').style.background = id.color;
-    document.getElementById('id-name').textContent = id.name.toUpperCase();
-    document.getElementById('id-sub').textContent = id.id;
-  }
-
-  return { update, showNotif, showDeath, hideDeath, setupIdentity };
+  return {update,notif,showDeath,hideDeath,updateClimberTag};
 })();
 
-/* ── INPUT MODULE ── */
-const INPUT = (() => {
-  const keys = {};
-
-  function init() {
-    window.addEventListener('keydown', e => {
-      keys[e.code] = true;
-      if (e.code === 'Space') { e.preventDefault(); STATE.jumpBuffered = true; }
-      if (e.code === 'KeyE' && !STATE.dead) GAME.openModal('bridge-modal');
-      if (e.code === 'KeyF' && !STATE.dead) GAME.openModal('message-modal');
-    });
-    window.addEventListener('keyup', e => {
-      keys[e.code] = false;
-      if (e.code === 'Space') STATE.jumpBuffered = false;
-    });
-
-    // Touch controls
-    const bindTouch = (id, downFn, upFn) => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.addEventListener('touchstart', e => { e.preventDefault(); downFn && downFn(); }, {passive: false});
-      el.addEventListener('touchend',   e => { e.preventDefault(); upFn   && upFn();   }, {passive: false});
-      el.addEventListener('mousedown',  e => { downFn && downFn(); });
-      el.addEventListener('mouseup',    e => { upFn   && upFn();   });
-    };
-
-    bindTouch('touch-left',  () => keys['KeyA'] = true,  () => keys['KeyA'] = false);
-    bindTouch('touch-right', () => keys['KeyD'] = true,  () => keys['KeyD'] = false);
-    bindTouch('touch-jump',  () => { STATE.jumpBuffered = true; },
-                             () => { STATE.jumpBuffered = false; });
-    bindTouch('touch-rest',  () => keys['KeyR'] = true,  () => keys['KeyR'] = false);
-  }
-
-  function isDown(code) { return !!keys[code]; }
-  function isLeft()  { return isDown('KeyA') || isDown('ArrowLeft'); }
-  function isRight() { return isDown('KeyD') || isDown('ArrowRight'); }
-  function isRest()  { return isDown('KeyR'); }
-
-  return { init, isLeft, isRight, isRest };
-})();
-
-/* ── GHOST PLAYERS — Simulated ── */
-function spawnGhostPlayers() {
-  STATE.ghostPlayers = [];
-  const colors = ['#63b3ed', '#68d391', '#f6ad55', '#a0aec0', '#fc8181', '#d6bcfa'];
-  const count = 4 + Math.floor(Math.random() * 5);
-  for (let i = 0; i < count; i++) {
-    const floorOffset = Math.floor(Math.random() * 10) - 3;
-    STATE.ghostPlayers.push({
-      floor: Math.max(1, STATE.floor + floorOffset),
-      x: 0.1 + Math.random() * 0.8,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      seed: Math.random() * 100
+/* ── GHOSTS (simulated other players) ── */
+function spawnGhosts(){
+  S.ghosts=[];
+  const cols=['#63b3ed','#68d391','#f6ad55','#c3a0dc','#fc8181','#4fd1c5'];
+  const n=3+Math.floor(Math.random()*5);
+  for(let i=0;i<n;i++){
+    S.ghosts.push({
+      floor:Math.max(1,S.floor+Math.floor(Math.random()*8)-2),
+      px:0.1+Math.random()*0.8,
+      color:cols[Math.floor(Math.random()*cols.length)],
+      seed:Math.random()*100,
     });
   }
 }
 
-/* ── MAIN GAME MODULE ── */
-const GAME = (() => {
-  function update() {
-    if (STATE.dead) return;
+/* ── GAME MODULE ── */
+const GAME=(()=>{
+  let campHoldStart=0, campHolding=false;
+  let saveInterval=null;
 
-    const dt = 1;
-    STATE.time += 16;
+  function update(){
+    if(S.dead||S.camped) return;
+    S.time+=16;
 
-    // Wind drift
-    if (Math.random() < 0.01) STATE.windTarget = (Math.random() - 0.5) * 20;
-    STATE.windOffset += (STATE.windTarget - STATE.windOffset) * 0.005;
+    // Wind
+    if(Math.random()<0.008) S.windTarget=(Math.random()-0.5)*22;
+    S.windOff+=(S.windTarget-S.windOff)*0.004;
 
-    // Horizontal movement
-    const speed = 0.004;
-    if (INPUT.isLeft())  { STATE.x -= speed; STATE.facing = -1; }
-    if (INPUT.isRight()) { STATE.x += speed; STATE.facing = 1; }
-    STATE.x = Math.max(0.02, Math.min(0.98, STATE.x));
+    const tw=WORLD.towers[S.tower];
 
-    // Gravity
-    const gravity = PHYSICS.getGravity(STATE.floor, WORLD.towers[STATE.tower].gravity);
-
-    // Coyote time
-    if (STATE.onGround) STATE.coyoteTime = 8;
-    else if (STATE.coyoteTime > 0) STATE.coyoteTime--;
-
-    // Jump with buffering + coyote
-    if (STATE.jumpBuffered && STATE.coyoteTime > 0) {
-      const jumpPower = STATE.floor < 501 ? 11 : STATE.floor < 1501 ? 8.5 : 6;
-      STATE.vy = -jumpPower;
-      STATE.onGround = false;
-      STATE.coyoteTime = 0;
-      STATE.jumpBuffered = false;
-      STATE.stamina = Math.max(0, STATE.stamina - 1.5);
-      RENDERER.spawnParticles(
-        RENDERER.W / 2 + (STATE.x - 0.5) * PHYSICS.getPlatformWidth(STATE.floor),
-        STATE.floor * PHYSICS.FLOOR_H - STATE.cameraY,
-        WORLD.towers[STATE.tower].color, 6
-      );
+    // ── Horizontal ──
+    if(!S.inputLocked){
+      if(INPUT.left()) {S.px-=0.004; S.facing=-1;}
+      if(INPUT.right()){S.px+=0.004; S.facing=1;}
+      S.px=Math.max(0.03,Math.min(0.97,S.px));
     }
 
-    // Apply gravity + position
-    if (!STATE.onGround) {
-      STATE.vy += gravity;
-      STATE.y += STATE.vy;
-    }
+    // ── Coyote ──
+    if(S.onGround) S.coyote=10;
+    else if(S.coyote>0) S.coyote--;
 
-    // Land detection
-    if (STATE.y >= 0) {
-      if (!STATE.onGround && STATE.vy > 4) {
-        // Hard landing particles
-        RENDERER.spawnParticles(
-          RENDERER.W / 2 + (STATE.x - 0.5) * PHYSICS.getPlatformWidth(STATE.floor),
-          STATE.floor * PHYSICS.FLOOR_H - STATE.cameraY,
-          '#4a5568', 8
-        );
+    // ── Jump ──
+    if(!S.inputLocked && S.jumpBuf>0){
+      S.jumpBuf--;
+      if(S.coyote>0){
+        S.vy=-PHY.jumpPow(S.floor);
+        S.onGround=false; S.coyote=0; S.jumpBuf=0;
+        S.stamina=Math.max(0,S.stamina-1.8);
+        const {cx,pw}=RENDERER.getPlatform(S.floor);
+        const sx=W*cx-pw/2+S.px*pw;
+        RENDERER.spawnParticles(sx,RENDERER.worldY(S.floor),tw.color,5);
       }
-      STATE.y = 0;
-      STATE.vy = 0;
-      STATE.onGround = true;
     }
 
-    // Resting
-    STATE.isResting = INPUT.isRest();
+    // ── Gravity + vertical movement ──
+    const g=PHY.gravity(S.floor,tw.gravity);
+    if(!S.onGround){ S.vy+=g; S.py+=S.vy; }
 
-    // Stamina drain / recover
-    if (STATE.isResting) {
-      STATE.stamina = Math.min(STATE.maxStamina, STATE.stamina + 0.25);
-    } else {
-      STATE.stamina = Math.max(0, STATE.stamina - 0.012);
+    // ── Land on current platform ──
+    if(S.py>=0){
+      if(!S.onGround&&S.vy>5){
+        const {cx,pw}=RENDERER.getPlatform(S.floor);
+        RENDERER.spawnParticles(W*cx-pw/2+S.px*pw,RENDERER.worldY(S.floor),'#445',8);
+      }
+      S.py=0; S.vy=0; S.onGround=true;
     }
 
-    // Exhaustion death
-    if (STATE.stamina <= 0) {
-      die('Exhaustion claimed you at floor ' + STATE.floor + '.');
-      return;
-    }
+    // ── Check: did player jump to next platform? ──
+    // When player is above current platform by more than GAP/2, check if they've reached next platform
+    if(!S.onGround && S.py < -(PHY.GAP*0.6)){
+      const nextFloor=S.floor+1;
+      const {cx:ncx,pw:npw}=RENDERER.getPlatform(nextFloor);
+      const nextPlatX=W*ncx-npw/2;
+      const {cx:ccx,pw:cpw}=RENDERER.getPlatform(S.floor);
+      const curPlatX=W*ccx-cpw/2;
+      const playerScreenX=curPlatX+S.px*cpw;
 
-    // Check if near right edge → advance floor
-    if (STATE.x > 0.92 && STATE.onGround && !STATE.jumpBuffered) {
-      // Trigger bridge build prompt if gap exists
-      const hasBridge = STATE.bridges.some(b =>
-        b.from === STATE.floor && b.tower === STATE.tower
-      );
-      if (!hasBridge) {
-        // Show hint occasionally
-        if (STATE.time % 300 < 10) {
-          UI.showNotif('No bridge here. Build one? Press E.');
+      // Check if player X is within next platform's bounds
+      if(playerScreenX>=nextPlatX && playerScreenX<=nextPlatX+npw){
+        if(S.py <= -(PHY.FLOOR_H-15)){
+          // Landed on next floor
+          S.floor=nextFloor;
+          S.py=0; S.vy=0; S.onGround=true;
+          S.sessionFloors++;
+          if(S.floor>S.bestFloor) S.bestFloor=S.floor;
+          spawnGhosts();
+          // Sprint reward: fast climber notification
+          if(S.sessionFloors>0&&S.sessionFloors%10===0){
+            UI.notif(`Floor ${S.floor} — ${S.sessionFloors} floors this session.`);
+          }
         }
       }
     }
 
-    // Camera smooth follow
-    const targetCam = STATE.floor * PHYSICS.FLOOR_H - RENDERER.H * 0.65 + STATE.y;
-    STATE.cameraY += (targetCam - STATE.cameraY) * 0.1;
-
-    // Update ghost player floors occasionally
-    if (STATE.time % 8000 < 20) spawnGhostPlayers();
-
-    // Check nearby messages
-    if (STATE.time % 2000 < 20) {
-      const nearby = STATE.messages.find(m =>
-        m.floor === STATE.floor && m.tower === STATE.tower &&
-        Math.abs(m.x - STATE.x) < 0.3
-      );
-      if (nearby) UI.showNotif(`"${nearby.text}"`);
+    // ── Bridge collision: allow climbing via bridge ──
+    const activeBridges=S.bridges.filter(b=>b.from===S.floor&&b.tower===S.tower);
+    if(!S.onGround && S.py<-30){
+      for(const br of activeBridges){
+        const {cx:ccx,pw:cpw}=RENDERER.getPlatform(S.floor);
+        const brX=W*ccx-cpw/2+br.px*cpw;
+        const playerX=W*ccx-cpw/2+S.px*cpw;
+        // Within bridge horizontal range
+        if(Math.abs(playerX-brX)<30){
+          // If player is in bridge zone (between floors)
+          if(S.py<-(PHY.FLOOR_H-15)){
+            S.floor++;
+            S.py=0; S.vy=0; S.onGround=true;
+            br.uses++; S.sessionFloors++;
+            if(S.floor>S.bestFloor) S.bestFloor=S.floor;
+            spawnGhosts();
+            if(br.uses===1000) UI.notif(`Your stone arch has served 1,000 climbers. It turns gold.`);
+            break;
+          }
+        }
+      }
     }
 
-    // Check nearby corpse
-    if (STATE.time % 3000 < 20) {
-      const nearCorpse = STATE.corpses.find(c =>
-        c.floor === STATE.floor && c.tower === STATE.tower &&
-        Math.abs(c.x - STATE.x) < 0.25
-      );
-      if (nearCorpse) UI.showNotif(`You found ${nearCorpse.builder || 'a climber'}'s remains.`);
+    // ── Stamina ──
+    S.isResting=!S.inputLocked&&INPUT.rest();
+    if(S.isResting) S.stamina=Math.min(S.maxSt,S.stamina+0.28);
+    else S.stamina=Math.max(0,S.stamina-0.013);
+
+    if(S.stamina<=0){die('Exhaustion claimed you.'); return;}
+
+    // ── Camp: hold C ──
+    if(!S.inputLocked&&INPUT.camp()){
+      if(!campHolding){campHolding=true; campHoldStart=Date.now();}
+      if(Date.now()-campHoldStart>2000) setCamp();
+    } else { campHolding=false; }
+
+    // ── Camera ──
+    const targetCamY=S.floor*PHY.FLOOR_H-RENDERER.H*0.62+S.py;
+    S.camY+=(targetCamY-S.camY)*0.09;
+
+    // ── Proximity messages & corpses ──
+    if(S.time%2000<20){
+      const {cx,pw}=RENDERER.getPlatform(S.floor);
+      const nearby=S.messages.find(m=>m.floor===S.floor&&m.tower===S.tower&&Math.abs(m.px-S.px)<0.3);
+      if(nearby) UI.notif('"'+nearby.text+'"');
+      const nc=S.corpses.find(c=>c.floor===S.floor&&c.tower===S.tower&&Math.abs(c.px-S.px)<0.25);
+      if(nc) UI.notif(`${nc.builder||'A climber'} fell here.`);
     }
 
-    // Update best floor
-    if (STATE.floor > STATE.bestFloor) STATE.bestFloor = STATE.floor;
-
+    if(S.time%8000<20) spawnGhosts();
     UI.update();
-
-    // Auto-save periodically
-    if (STATE.time % 15000 < 20) STATE.save();
   }
 
-  function die(reason) {
-    STATE.dead = true;
+  let W=0,H=0;
 
-    // Leave corpse
-    STATE.corpses.push({
-      floor: STATE.floor,
-      x: STATE.x,
-      tower: STATE.tower,
-      builder: IDENTITY.get().name,
-      reason
-    });
-
-    STATE.save();
-    UI.showDeath(STATE.floor);
+  function die(reason){
+    S.dead=true;
+    S.corpses.push({floor:S.floor,px:S.px,tower:S.tower,builder:IDENTITY.get()?.name,reason});
+    S.save(); UI.showDeath(S.floor);
   }
 
-  function respawn() {
+  function respawn(){
     UI.hideDeath();
-    STATE.floor = 1;
-    STATE.stamina = 100;
-    STATE.reset();
-    STATE.cameraY = 0;
-    STATE.load(); // Reload bridges/messages
-    spawnGhostPlayers();
-    UI.showNotif('Your bridges remain. Your legacy endures.');
+    S.reset(); S.floor=1; S.stamina=100; S.camY=0;
+    S.load(S.tower);
+    spawnGhosts();
+    setTimeout(()=>UI.notif('Your bridges remain. Your legacy endures.'),600);
   }
 
-  function submitMessage() {
-    const val = document.getElementById('message-input').value.trim();
-    if (!val) return;
-    if (STATE.stamina < 5) { UI.showNotif('Not enough stamina to carve a message.'); closeModal('message-modal'); return; }
-    STATE.messages.push({ floor: STATE.floor, x: STATE.x, tower: STATE.tower, text: val });
-    STATE.stamina -= 5;
-    STATE.save();
-    closeModal('message-modal');
-    document.getElementById('message-input').value = '';
-    UI.showNotif('"' + val + '" — carved into the tower forever.');
+  function openMsgModal(){
+    if(S.dead) return;
+    S.inputLocked=true;
+    document.getElementById('msg-modal').style.display='block';
+    setTimeout(()=>document.getElementById('msg-input').focus(),50);
   }
 
-  function buildBridge(type) {
-    const costs = { plank: 15, rope: 25, stone: 40 };
-    const maxUses = { plank: 50, rope: 100, stone: 9999999 };
-    const cost = costs[type];
-    if (STATE.stamina < cost) {
-      UI.showNotif('Not enough stamina for that bridge.');
-      closeModal('bridge-modal');
-      return;
-    }
-    STATE.stamina -= cost;
-    STATE.bridges.push({
-      from: STATE.floor,
-      tower: STATE.tower,
-      x: STATE.x,
-      type,
-      uses: 0,
-      maxUses: maxUses[type],
-      builder: IDENTITY.get().id,
-      builderName: IDENTITY.get().name
-    });
-    STATE.bridgeCount++;
-    STATE.totalBridgesBuilt++;
-    STATE.save();
-    closeModal('bridge-modal');
-    UI.showNotif(`${type === 'plank' ? 'Wooden plank' : type === 'rope' ? 'Rope ladder' : 'Stone arch'} built. Others will use this.`);
-
-    // Advance floor if built connection
-    setTimeout(() => {
-      STATE.floor++;
-      STATE.y = 0;
-      STATE.vy = 0;
-      STATE.onGround = true;
-      UI.showNotif(`Floor ${STATE.floor}. Keep climbing.`);
-      spawnGhostPlayers();
-    }, 500);
+  function openBridgeModal(){
+    if(S.dead) return;
+    S.inputLocked=true;
+    document.getElementById('bridge-modal').style.display='block';
   }
 
-  function openModal(id) {
-    closeAllModals();
-    document.getElementById(id).style.display = 'block';
+  function closeModals(){
+    document.getElementById('msg-modal').style.display='none';
+    document.getElementById('bridge-modal').style.display='none';
+    document.getElementById('msg-input').value='';
+    S.inputLocked=false;
   }
 
-  function closeModal(id) {
-    document.getElementById(id).style.display = 'none';
+  function submitMessage(){
+    const txt=document.getElementById('msg-input').value.trim();
+    if(!txt){closeModals();return;}
+    if(S.stamina<5){UI.notif('Not enough stamina to carve a message.');closeModals();return;}
+    S.messages.push({floor:S.floor,px:S.px,tower:S.tower,text:txt,builder:IDENTITY.get()?.name});
+    S.stamina-=5; S.save(); closeModals();
+    UI.notif('"'+txt+'" — carved into the tower forever.');
   }
 
-  function closeAllModals() {
-    ['message-modal', 'bridge-modal'].forEach(id => closeModal(id));
+  function buildBridge(type){
+    const costs={plank:15,rope:25,stone:40};
+    const maxU={plank:50,rope:100,stone:9999999};
+    const cost=costs[type];
+    if(S.stamina<cost){UI.notif('Not enough stamina.');closeModals();return;}
+    S.stamina-=cost;
+    S.bridges.push({from:S.floor,tower:S.tower,px:S.px,type,uses:0,maxUses:maxU[type],builder:IDENTITY.get()?.name});
+    S.bridgeCount++; S.totalBridges++;
+    S.save(); closeModals();
+    const names={plank:'Wooden plank',rope:'Rope ladder',stone:'Stone arch'};
+    UI.notif(`${names[type]} built on floor ${S.floor}. Others will climb this.`);
   }
 
-  function switchTower(name) {
-    STATE.save();
-    STATE.tower = name;
-    STATE.reset();
-    STATE.floor = 1;
-    STATE.stamina = 100;
-    STATE.cameraY = 0;
-    STATE.bridges = [];
-    STATE.messages = [];
-    STATE.corpses = [];
-    STATE.bridgeCount = 0;
-    STATE.load();
-    RENDERER.resize();
-    spawnGhostPlayers();
-    UI.showNotif(`Now climbing ${WORLD.towers[name].name}.`);
-    document.querySelectorAll('.tower-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.tower === name);
-    });
+  function setCamp(){
+    if(S.camped) return;
+    S.camped=true; S.campedAt=Date.now(); S.campFloor=S.floor;
+    S.save();
+    document.getElementById('camp-overlay').style.display='flex';
+    document.getElementById('co-floor').textContent='Floor '+S.floor;
+    document.getElementById('camp-hud').style.display='block';
+    document.getElementById('camp-fl').textContent=S.floor;
+    S.inputLocked=true;
   }
 
-  function loop() {
+  function breakCamp(){
+    S.camped=false; S.campedAt=null;
+    document.getElementById('camp-overlay').style.display='none';
+    S.inputLocked=false;
+    UI.notif('Camp broken. Stamina partially recovered. Keep climbing.');
+  }
+
+  function logOut(){
+    S.save();
+    UI.notif('Progress saved. Come back to your camp.');
+    setTimeout(()=>window.close&&window.close(),1200);
+  }
+
+  function switchTower(name){
+    S.save(); S.tower=name;
+    S.reset(); S.floor=1; S.stamina=100; S.camY=0;
+    S.messages=[]; S.corpses=[]; S.bridges=[]; S.bridgeCount=0;
+    S.load(name);
+    BG.resize(W,H);
+    spawnGhosts();
+    UI.notif('Now climbing '+WORLD.towers[name].name+'.');
+    document.querySelectorAll('.tower-btn').forEach(b=>b.classList.toggle('active',b.dataset.tower===name));
+  }
+
+  function loop(){
     update();
-    RENDERER.drawBackground();
-    RENDERER.drawTower();
+    BG.draw();
+    RENDERER.draw();
     requestAnimationFrame(loop);
   }
 
-  function init() {
-    RENDERER.resize();
-    window.addEventListener('resize', () => RENDERER.resize());
+  function start(tower){
+    S.tower=tower; S.load(tower);
+    S.sessionStart=Date.now(); S.sessionFloors=0;
+    W=window.innerWidth; H=window.innerHeight;
+    document.getElementById('bg-canvas').width=W;
+    document.getElementById('bg-canvas').height=H;
+    RENDERER.resize(W,H);
+    BG.resize(W,H);
+    window.addEventListener('resize',()=>{
+      W=window.innerWidth; H=window.innerHeight;
+      document.getElementById('bg-canvas').width=W;
+      document.getElementById('bg-canvas').height=H;
+      RENDERER.resize(W,H); BG.resize(W,H);
+    });
     INPUT.init();
+    UI.updateClimberTag();
+    spawnGhosts();
+
+    // Modal submit
+    document.getElementById('msg-submit').onclick=()=>submitMessage();
+    document.getElementById('msg-input').addEventListener('keydown',e=>{
+      if(e.code==='Enter') submitMessage();
+      if(e.code==='Escape') closeModals();
+      e.stopPropagation(); // prevent game keys
+    });
+    window.addEventListener('keydown',e=>{if(e.code==='Escape') closeModals();});
+
+    // Climber tag click
+    document.getElementById('ctag').onclick=()=>{
+      const id=IDENTITY.get();
+      UI.notif(`${id.name} · ${S.bridgeCount} bridges built · Best: floor ${S.bestFloor}`);
+    };
 
     // Tower buttons
-    document.querySelectorAll('.tower-btn').forEach(btn => {
-      btn.addEventListener('click', () => switchTower(btn.dataset.tower));
+    document.querySelectorAll('.tower-btn-hud').forEach(b=>{
+      b.addEventListener('click',()=>switchTower(b.dataset.tower));
     });
 
-    // Identity click (show tooltip)
-    document.getElementById('climber-id').addEventListener('click', () => {
-      const id = IDENTITY.get();
-      UI.showNotif(`You are ${id.name}. Your mark is on ${STATE.bridgeCount} bridges.`);
-    });
+    if(S.campedAt){
+      document.getElementById('camp-hud').style.display='block';
+      document.getElementById('camp-fl').textContent=S.campFloor;
+      setTimeout(()=>UI.notif('Welcome back. Your stamina recovered while you camped.'),800);
+    }
 
-    // Close modals on backdrop click
-    window.addEventListener('keydown', e => {
-      if (e.code === 'Escape') GAME.closeAllModals();
-    });
+    document.getElementById('intro').style.transition='opacity 0.8s';
+    document.getElementById('intro').style.opacity='0';
+    setTimeout(()=>{document.getElementById('intro').style.display='none'; S.inputLocked=false;},900);
 
-    // Init
-    STATE.load();
-    UI.setupIdentity();
-    spawnGhostPlayers();
-    UI.showNotif('The tower has no top. Climb.');
-
+    saveInterval=setInterval(()=>S.save(),15000);
     loop();
   }
 
-  return { init, update, die, respawn, openModal, closeModal, closeAllModals, submitMessage, buildBridge };
+  return {update,die,respawn,openMsgModal,openBridgeModal,closeModals,submitMessage,buildBridge,setCamp,breakCamp,logOut,switchTower,start};
 })();
 
-// Add stamina vignette overlay
-const vigEl = document.createElement('div');
-vigEl.id = 'vig-overlay';
-vigEl.style.cssText = `
-  position:fixed;inset:0;z-index:9;pointer-events:none;
-  box-shadow:inset 0 0 120px rgba(252,129,129,0.4);
-  opacity:0;transition:opacity 0.3s;
-`;
-document.body.appendChild(vigEl);
+/* ═══════════════════════════════════
+   INTRO MODULE
+   ═══════════════════════════════════ */
+const INTRO=(()=>{
+  let currentScreen=0;
+  let selectedColor=WORLD.lanternColors[0];
+  let lorePhase=0;
 
-// Start
-GAME.init();
+  function init(){
+    // Build lantern swatches
+    const row=document.getElementById('lantern-row');
+    WORLD.lanternColors.forEach((col,i)=>{
+      const sw=document.createElement('div');
+      sw.className='lantern-swatch'+(i===0?' sel':'');
+      sw.style.background=col;
+      sw.onclick=()=>{
+        document.querySelectorAll('.lantern-swatch').forEach(s=>s.classList.remove('sel'));
+        sw.classList.add('sel'); selectedColor=col;
+        document.getElementById('lantern-preview').style.background=col;
+      };
+      row.appendChild(sw);
+    });
+    document.getElementById('lantern-preview').style.background=selectedColor;
+
+    // Tower cards
+    const tc=document.getElementById('tower-cards');
+    Object.entries(WORLD.towers).forEach(([key,tw])=>{
+      const card=document.createElement('div');
+      card.className='tower-card';
+      card.innerHTML=`<div class="tc-city">${tw.city}</div><div class="tc-name">${tw.name}</div><div class="tc-desc">${tw.desc}</div><div class="tc-accent" style="background:${tw.color}"></div>`;
+      card.onclick=()=>finish(key);
+      tc.appendChild(card);
+    });
+
+    // Check returning player
+    if(IDENTITY.ready()){
+      // Skip intro for returning players — show short version
+      skipToTower();
+      return;
+    }
+
+    // Start lore animation
+    runLore();
+  }
+
+  function runLore(){
+    const lines=[document.getElementById('l0'),document.getElementById('l1'),document.getElementById('l2'),document.getElementById('l3')];
+    let i=0;
+    function next(){
+      if(i<lines.length){lines[i].classList.add('show'); i++; setTimeout(next,i<3?2000:1600);}
+    }
+    setTimeout(next,800);
+    // Auto-advance to S1 after lore
+    setTimeout(()=>{if(currentScreen===0)goS1();},9000);
+  }
+
+  function skipToTower(){
+    // Show just tower selection for returning players
+    currentScreen=3;
+    document.querySelectorAll('.intro-screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('s3').classList.add('active');
+  }
+
+  function goS1(){
+    if(currentScreen!==0) return;
+    currentScreen=1;
+    document.getElementById('s0').classList.remove('active');
+    document.getElementById('s1').classList.add('active');
+    setTimeout(()=>document.getElementById('climber-name-input').focus(),600);
+  }
+
+  function goS2(){
+    const nm=document.getElementById('climber-name-input').value.trim();
+    if(!nm) return;
+    currentScreen=2;
+    document.getElementById('s1').classList.remove('active');
+    document.getElementById('s2').classList.add('active');
+  }
+
+  function goS3(){
+    currentScreen=3;
+    document.getElementById('s2').classList.remove('active');
+    document.getElementById('s3').classList.add('active');
+  }
+
+  function finish(tower){
+    const nm=document.getElementById('climber-name-input').value.trim()||'The Climber';
+    IDENTITY.set(nm,selectedColor);
+    GAME.start(tower);
+  }
+
+  function skip(){
+    // Skip straight to tower select
+    if(!document.getElementById('climber-name-input').value.trim()){
+      document.getElementById('climber-name-input').value='The Wanderer';
+    }
+    skipToTower();
+  }
+
+  // Click anywhere on S0 to advance
+  document.getElementById('s0').addEventListener('click',e=>{
+    if(e.target.id==='intro-skip') return;
+    if(currentScreen===0) goS1();
+  });
+
+  document.getElementById('name-btn').onclick=goS2;
+  document.getElementById('climber-name-input').addEventListener('keydown',e=>{
+    if(e.code==='Enter') goS2();
+    e.stopPropagation();
+  });
+
+  return {init,goS1,goS2,goS3,skip};
+})();
+
+/* ── BOOT ── */
+INTRO.init();
 </script>
 </body>
 </html>
