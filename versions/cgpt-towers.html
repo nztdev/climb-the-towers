@@ -116,6 +116,65 @@ cursor:pointer;
 <div class="action-btn" id="rest-btn">REST</div>
 </div>
 </div>
+<!--
+MAJOR REDESIGN NOTES
+This build must transition away from prototype-level rendering.
+NEW VISUAL TARGET:
+- INSIDE / LIMBO / Journey / GRIS tier atmospheric readability
+- Prince of Persia fluidity
+- realistic momentum-based traversal
+- grounded architecture inspired by real engineering structures
+- cinematic environmental storytelling
+PLAYER REDESIGN:
+- Replace stick silhouette with layered animated climber rig
+- Separate torso / hips / arms / legs animation
+- IK-like hand placement during climbing
+- procedural leaning while moving
+- cloth simulation for jacket straps
+- lantern physically swings from hand
+- climbing gloves, backpack, harness, boots
+- breathing animation during idle
+- exhaustion animation under low stamina
+- slipping recovery animation
+- landing anticipation and recovery frames
+TOWER REDESIGN:
+- Platforms are no longer floating rectangles.
+- Each tower is a believable megastructure.
+- Real-world engineering inspiration:
+  - Tokyo = steel lattice broadcast tower
+  - Paris = riveted iron industrial architecture
+  - New York = rooftop maintenance infrastructure + antennas + water towers
+ENVIRONMENTAL TRANSITIONS:
+- lower city:
+  neon, traffic haze, distant sirens, rain reflections
+- atmosphere:
+  clouds wrap around structure, wind shear, condensation
+- near orbit:
+  ice accumulation, metal creaks, oxygen vents
+- deep space:
+  impossible architecture, abandoned stations, relic structures
+CAMERA:
+- dynamic camera lag
+- cinematic vertical framing
+- subtle handheld motion
+- impact shake
+- anticipation motion before jumps
+AUDIO:
+MANDATORY.
+The game will not emotionally function without it.
+MOBILE:
+- swipe-assisted climbing
+- contextual climb assist
+- adaptive touch zones
+- one-thumb accessibility mode
+IMPORTANT:
+This project should no longer feel like:
+- an HTML prototype
+- a canvas demo
+- an io game
+It should feel like:
+> a lost atmospheric indie masterpiece.
+-->
 <script>
 const bg=document.getElementById('bg');
 const game=document.getElementById('game');
