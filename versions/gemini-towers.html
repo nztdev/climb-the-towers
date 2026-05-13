@@ -2,310 +2,335 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE TOWER - Eternal Ascent by Gemini</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>THE TOWER | Global Ascent by Gemini</title>
     <style>
         :root {
+            --ui-bg: rgba(10, 15, 25, 0.85);
+            --text: #f8fafc;
             --accent: #4fd1c5;
-            --bg-dark: #050810;
-            --ui-panel: rgba(13, 17, 23, 0.85);
-            --text-main: #e2e8f0;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
 
         body {
-            background: var(--bg-dark);
-            color: var(--text-main);
-            font-family: 'Inter', -apple-system, sans-serif;
+            background: #020408;
+            color: var(--text);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             overflow: hidden;
             width: 100vw;
             height: 100vh;
         }
 
-        #game-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            filter: contrast(1.1) brightness(0.9); /* Cinematic pass */
-        }
-
-        canvas { position: absolute; top: 0; left: 0; }
-        #bg-canvas { z-index: 1; transition: filter 2s ease; }
+        #stage { position: relative; width: 100%; height: 100%; overflow: hidden; }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        #bg-canvas { z-index: 1; }
         #game-canvas { z-index: 2; }
 
-        /* Modernized UI */
-        #ui-layer {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 10; pointer-events: none;
-            padding: 25px;
+        /* HUD */
+        #hud {
+            position: absolute; top: 0; left: 0; width: 100%; z-index: 10;
+            padding: 20px; display: flex; justify-content: space-between;
+            pointer-events: none;
         }
 
-        #top-bar {
-            display: flex;
-            justify-content: space-between;
-            background: var(--ui-panel);
-            backdrop-filter: blur(12px);
+        .stat-box {
+            background: var(--ui-bg);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            border-radius: 8px;
             border: 1px solid rgba(255,255,255,0.1);
-            padding: 15px 30px;
-            border-radius: 12px;
-            pointer-events: auto;
         }
 
-        .stat-group { display: flex; flex-direction: column; gap: 4px; }
-        .stat-label { font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: 1px; }
-        .stat-value { font-family: 'Courier New', monospace; font-weight: bold; font-size: 18px; color: var(--accent); }
+        .label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8; display: block; }
+        .value { font-family: 'Courier New', monospace; font-size: 1.2rem; font-weight: bold; color: var(--accent); }
 
-        /* Dynamic Stamina */
-        #stamina-container { width: 120px; height: 4px; background: #2d3748; border-radius: 2px; overflow: hidden; margin-top: 5px; }
-        #stamina-bar { height: 100%; background: var(--accent); transition: width 0.1s linear, background 0.3s ease; }
-
-        /* Critical Warning Overlay */
-        #vignette {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
-            pointer-events: none; transition: box-shadow 0.5s ease;
+        /* Tower Selector */
+        #tower-nav {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            z-index: 10; display: flex; gap: 10px;
         }
 
-        #death-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(5, 8, 16, 0.98);
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 100; pointer-events: auto;
+        .tower-btn {
+            background: var(--ui-bg);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white; padding: 10px 20px; border-radius: 4px;
+            cursor: pointer; font-size: 12px; transition: 0.3s;
         }
 
-        .btn-modern {
-            padding: 12px 32px; background: var(--accent); border: none;
-            border-radius: 6px; font-weight: 700; cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+        .tower-btn.active { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 15px rgba(79, 209, 197, 0.3); }
+
+        /* Mobile Controls Overlay (Visible only on touch) */
+        #mobile-hint {
+            position: absolute; bottom: 100px; width: 100%; text-align: center;
+            color: rgba(255,255,255,0.3); font-size: 12px; pointer-events: none;
         }
-        .btn-modern:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(79, 209, 197, 0.4); }
     </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="vignette"></div>
-        <canvas id="bg-canvas"></canvas>
-        <canvas id="game-canvas"></canvas>
 
-        <div id="ui-layer">
-            <div id="top-bar">
-                <div class="stat-group">
-                    <span class="stat-label">Location</span>
-                    <span id="tower-name" class="stat-value">TOKYO SKYTREE</span>
-                </div>
-                <div class="stat-group">
-                    <span class="stat-label">Altitude</span>
-                    <span id="floor-display" class="stat-value">F.001</span>
-                </div>
-                <div class="stat-group">
-                    <span class="stat-label">Stamina</span>
-                    <div id="stamina-container"><div id="stamina-bar"></div></div>
-                </div>
-            </div>
+<div id="stage">
+    <canvas id="bg-canvas"></canvas>
+    <canvas id="game-canvas"></canvas>
+
+    <div id="hud">
+        <div class="stat-box">
+            <span class="label">Location</span>
+            <span id="loc-val" class="value">TOKYO</span>
         </div>
-
-        <div id="death-screen">
-            <h1 style="font-size: 64px; letter-spacing: 10px; color: #fc8181;">FALLEN</h1>
-            <p id="death-reason" style="margin: 20px 0; color: #718096; font-style: italic;"></p>
-            <button class="btn-modern" onclick="engine.respawn()">BEGIN AGAIN</button>
+        <div class="stat-box" style="text-align: right;">
+            <span class="label">Altitude</span>
+            <span id="alt-val" class="value">0m</span>
         </div>
     </div>
 
-    <script>
-        /**
-         * MODULAR MANIFEST
-         * Centralized data for easy expansion.
-         */
-        const TOWER_DATA = {
-            tokyo: { name: "Tokyo Skytree", color: "#4fd1c5", gravity: 0.5, bg: "#0a0a1a" },
-            paris: { name: "Eiffel Tower", color: "#f6ad55", gravity: 0.48, bg: "#0f0a1a" }
+    <div id="mobile-hint">TAP LEFT/RIGHT TO MOVE • SWIPE UP TO JUMP</div>
+
+    <div id="tower-nav">
+        <button class="tower-btn active" onclick="engine.switchTower('tokyo')">TOKYO</button>
+        <button class="tower-btn" onclick="engine.switchTower('paris')">PARIS</button>
+        <button class="tower-btn" onclick="engine.switchTower('newyork')">NEW YORK</button>
+    </div>
+</div>
+
+<script>
+/**
+ * MODULAR TOWER MANIFEST
+ * Easy to add new cities without changing core logic.
+ */
+const TOWER_MANIFEST = {
+    tokyo: {
+        name: "TOKYO",
+        accent: "#4fd1c5",
+        landmark: "Skytree",
+        gravity: 0.45,
+        horizonColor: "#1a1c2c",
+        skyColor: "#050508"
+    },
+    paris: {
+        name: "PARIS",
+        accent: "#f6ad55",
+        landmark: "Eiffel Tower",
+        gravity: 0.42,
+        horizonColor: "#2c1a1a",
+        skyColor: "#080505"
+    },
+    newyork: {
+        name: "NEW YORK",
+        accent: "#63b3ed",
+        landmark: "Empire State",
+        gravity: 0.48,
+        horizonColor: "#1a2c22",
+        skyColor: "#050806"
+    }
+};
+
+class TowerEngine {
+    constructor() {
+        this.canvas = document.getElementById('game-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.bgCanvas = document.getElementById('bg-canvas');
+        this.bgCtx = this.bgCanvas.getContext('2d');
+        
+        this.w = window.innerWidth;
+        this.h = window.innerHeight;
+        
+        this.currentTower = 'tokyo';
+        this.player = {
+            x: 0.5,
+            y: 0,
+            vy: 0,
+            onGround: true,
+            walkFrame: 0,
+            facing: 1
+        };
+        
+        this.state = {
+            altitude: 0,
+            camY: 0,
+            input: { left: false, right: false, jump: false }
         };
 
-        class GameEngine {
-            constructor() {
-                this.canvas = document.getElementById('game-canvas');
-                this.ctx = this.canvas.getContext('2d');
-                this.bgCanvas = document.getElementById('bg-canvas');
-                this.bgCtx = this.bgCanvas.getContext('2d');
-                
-                this.state = {
-                    floor: 1,
-                    stamina: 100,
-                    x: 0.5,
-                    y: 0,
-                    vy: 0,
-                    onGround: true,
-                    facing: 1,
-                    dead: false,
-                    camY: 0,
-                    time: 0
-                };
+        this.init();
+    }
 
-                this.config = TOWER_DATA.tokyo;
-                this.init();
-            }
+    init() {
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        this.setupControls();
+        this.loop();
+    }
 
-            init() {
-                window.addEventListener('resize', () => this.resize());
-                this.resize();
-                this.bindInput();
-                this.loop();
-            }
+    resize() {
+        this.w = this.canvas.width = this.bgCanvas.width = window.innerWidth;
+        this.h = this.canvas.height = this.bgCanvas.height = window.innerHeight;
+    }
 
-            resize() {
-                this.w = this.canvas.width = this.bgCanvas.width = window.innerWidth;
-                this.h = this.canvas.height = this.bgCanvas.height = window.innerHeight;
-            }
+    setupControls() {
+        // Keyboard
+        window.addEventListener('keydown', e => this.handleKey(e, true));
+        window.addEventListener('keyup', e => this.handleKey(e, false));
 
-            bindInput() {
-                this.keys = {};
-                window.addEventListener('keydown', e => this.keys[e.key.toLowerCase()] = true);
-                window.addEventListener('keyup', e => this.keys[e.key.toLowerCase()] = false);
-                window.addEventListener('keydown', e => {
-                    if(e.code === 'Space' && this.state.onGround && !this.state.dead) {
-                        this.state.vy = -12;
-                        this.state.onGround = false;
-                        this.state.stamina -= 3;
-                    }
-                });
-            }
+        // Mobile Touch
+        window.addEventListener('touchstart', e => {
+            const touchX = e.touches[0].clientX;
+            if (touchX < this.w / 2) this.state.input.left = true;
+            else this.state.input.right = true;
+        });
 
-            update() {
-                if (this.state.dead) return;
+        window.addEventListener('touchend', () => {
+            this.state.input.left = false;
+            this.state.input.right = false;
+        });
 
-                // Physics logic
-                const speed = 0.004;
-                if (this.keys.a) { this.state.x -= speed; this.state.facing = -1; }
-                if (this.keys.d) { this.state.x += speed; this.state.facing = 1; }
-                this.state.x = Math.max(0.1, Math.min(0.9, this.state.x));
+        // Swipe for Jump
+        let startY = 0;
+        window.addEventListener('touchstart', e => startY = e.touches[0].clientY);
+        window.addEventListener('touchend', e => {
+            if (startY - e.changedTouches[0].clientY > 50) this.state.input.jump = true;
+        });
+    }
 
-                // Gravity logic (Scales with height)
-                const gravityScale = Math.max(0.2, 0.5 - (this.state.floor / 5000));
-                if (!this.state.onGround) {
-                    this.state.vy += gravityScale;
-                    this.state.y += this.state.vy;
-                    if (this.state.y >= 0) {
-                        this.state.y = 0;
-                        this.state.vy = 0;
-                        this.state.onGround = true;
-                    }
-                }
+    handleKey(e, isDown) {
+        if (e.key === 'ArrowLeft' || e.key === 'a') this.state.input.left = isDown;
+        if (e.key === 'ArrowRight' || e.key === 'd') this.state.input.right = isDown;
+        if (e.code === 'Space' || e.key === 'w') this.state.input.jump = isDown;
+    }
 
-                // Stamina & Death
-                this.state.stamina -= 0.015;
-                if (this.state.stamina <= 0) this.die("Exhaustion took hold.");
+    switchTower(id) {
+        this.currentTower = id;
+        document.querySelectorAll('.tower-btn').forEach(b => {
+            b.classList.toggle('active', b.innerText.toLowerCase().replace(" ","") === id);
+        });
+        document.getElementById('loc-val').innerText = TOWER_MANIFEST[id].name;
+        this.state.altitude = 0;
+        this.player.y = 0;
+    }
 
-                // Camera
-                const targetCam = this.state.floor * 140 - this.h * 0.7;
-                this.state.camY += (targetCam - this.state.camY) * 0.1;
+    update() {
+        const config = TOWER_MANIFEST[this.currentTower];
+        
+        // Movement
+        if (this.state.input.left) { this.player.x -= 0.005; this.player.facing = -1; this.player.walkFrame += 0.2; }
+        if (this.state.input.right) { this.player.x += 0.005; this.player.facing = 1; this.player.walkFrame += 0.2; }
+        this.player.x = Math.max(0.2, Math.min(0.8, this.player.x));
 
-                this.updateUI();
-            }
+        // Jump
+        if (this.state.input.jump && this.player.onGround) {
+            this.player.vy = -12;
+            this.player.onGround = false;
+            this.state.input.jump = false;
+        }
 
-            updateUI() {
-                const sBar = document.getElementById('stamina-bar');
-                const vig = document.getElementById('vignette');
-                sBar.style.width = `${this.state.stamina}%`;
-                
-                if (this.state.stamina < 25) {
-                    sBar.style.background = "#fc8181";
-                    vig.style.boxShadow = `inset 0 0 150px rgba(252, 129, 129, ${0.2 + Math.sin(Date.now()*0.01)*0.1})`;
-                } else {
-                    sBar.style.background = this.config.color;
-                    vig.style.boxShadow = "inset 0 0 100px rgba(0,0,0,0.8)";
-                }
-
-                document.getElementById('floor-display').textContent = `F.${this.state.floor.toString().padStart(3, '0')}`;
-            }
-
-            draw() {
-                this.ctx.clearRect(0, 0, this.w, this.h);
-                this.drawTower();
-                if (!this.state.dead) this.drawAestheticHuman();
-            }
-
-            drawAestheticHuman() {
-                const centerX = this.w / 2;
-                const pX = (centerX - 150) + (this.state.x * 300);
-                const pY = (this.state.floor * 140 - this.state.camY) + this.state.y;
-
-                this.ctx.save();
-                this.ctx.translate(pX, pY);
-
-                // Glow Core
-                const gradient = this.ctx.createRadialGradient(0, -20, 0, 0, -20, 15);
-                gradient.addColorStop(0, 'rgba(255,255,255,0.8)');
-                gradient.addColorStop(1, 'transparent');
-                this.ctx.fillStyle = gradient;
-                this.ctx.fillRect(-20, -40, 40, 40);
-
-                // Silhouette Body
-                this.ctx.strokeStyle = "white";
-                this.ctx.lineWidth = 2.5;
-                this.ctx.lineCap = "round";
-
-                // Torso (Slight lean)
-                this.ctx.beginPath();
-                this.ctx.moveTo(0, 0);
-                this.ctx.lineTo(this.state.facing * 3, -25);
-                this.ctx.stroke();
-
-                // Head (Floating)
-                this.ctx.beginPath();
-                this.ctx.arc(this.state.facing * 5, -35, 4, 0, Math.PI * 2);
-                this.ctx.fillStyle = "white";
-                this.ctx.fill();
-
-                // Dynamic Legs (Based on vy)
-                const legWiggle = Math.sin(Date.now() * 0.01) * 5;
-                this.ctx.beginPath();
-                this.ctx.moveTo(0, 0);
-                this.ctx.lineTo(-5 + (this.state.onGround ? 0 : legWiggle), 12); // Leg L
-                this.ctx.stroke();
-
-                this.ctx.beginPath();
-                this.ctx.moveTo(0, 0);
-                this.ctx.lineTo(5 - (this.state.onGround ? 0 : legWiggle), 12); // Leg R
-                this.ctx.stroke();
-
-                this.ctx.restore();
-            }
-
-            drawTower() {
-                const centerX = this.w / 2;
-                for (let i = -2; i < 10; i++) {
-                    const f = Math.floor(this.state.camY / 140) + i;
-                    const fY = f * 140 - this.state.camY;
-                    
-                    // Platform
-                    this.ctx.fillStyle = "rgba(45, 55, 72, 0.5)";
-                    this.ctx.fillRect(centerX - 150, fY, 300, 8);
-                    this.ctx.strokeStyle = this.config.color;
-                    this.ctx.strokeRect(centerX - 150, fY, 300, 8);
-                }
-            }
-
-            die(reason) {
-                this.state.dead = true;
-                document.getElementById('death-reason').textContent = reason;
-                document.getElementById('death-screen').style.display = 'flex';
-            }
-
-            respawn() {
-                this.state = { ...this.state, floor: 1, stamina: 100, dead: false, y: 0 };
-                document.getElementById('death-screen').style.display = 'none';
-            }
-
-            loop() {
-                this.update();
-                this.draw();
-                requestAnimationFrame(() => this.loop());
+        // Gravity
+        if (!this.player.onGround) {
+            this.player.vy += config.gravity;
+            this.player.y += this.player.vy;
+            if (this.player.y >= 0) {
+                this.player.y = 0;
+                this.player.onGround = true;
+                this.state.altitude++;
             }
         }
 
-        const engine = new GameEngine();
-    </script>
+        // Camera
+        const targetCam = this.state.altitude * 120;
+        this.state.camY += (targetCam - this.state.camY) * 0.1;
+        document.getElementById('alt-val').innerText = `${this.state.altitude * 10}m`;
+    }
+
+    draw() {
+        this.ctx.clearRect(0, 0, this.w, this.h);
+        this.drawBackground();
+        this.drawPlatforms();
+        this.drawRealisticPlayer();
+    }
+
+    drawBackground() {
+        const config = TOWER_MANIFEST[this.currentTower];
+        const fade = Math.min(1, this.state.altitude / 50); // Fades out by floor 50
+        
+        // Gradient sky
+        const grad = this.bgCtx.createLinearGradient(0, 0, 0, this.h);
+        grad.addColorStop(0, config.skyColor);
+        grad.addColorStop(1, config.horizonColor);
+        this.bgCtx.fillStyle = grad;
+        this.bgCtx.fillRect(0,0,this.w,this.h);
+
+        // Landmark
+        this.bgCtx.save();
+        this.bgCtx.globalAlpha = 1 - fade;
+        this.bgCtx.fillStyle = "rgba(255,255,255,0.05)";
+        this.bgCtx.font = "bold 200px Arial";
+        this.bgCtx.textAlign = "center";
+        this.bgCtx.fillText(config.landmark, this.w/2, this.h - (this.state.camY * 0.2));
+        this.bgCtx.restore();
+    }
+
+    drawPlatforms() {
+        const centerX = this.w / 2;
+        const config = TOWER_MANIFEST[this.currentTower];
+        for(let i = -5; i < 10; i++) {
+            const f = Math.floor(this.state.camY / 120) + i;
+            if (f < 0) continue;
+            const y = this.h - 100 - (f * 120 - this.state.camY);
+            
+            this.ctx.fillStyle = `rgba(255,255,255,${0.1 + (i*0.05)})`;
+            this.ctx.fillRect(centerX - 150, y, 300, 4);
+            
+            this.ctx.shadowBlur = 15;
+            this.ctx.shadowColor = config.accent;
+            this.ctx.strokeStyle = config.accent;
+            this.ctx.strokeRect(centerX - 150, y, 300, 1);
+            this.ctx.shadowBlur = 0;
+        }
+    }
+
+    drawRealisticPlayer() {
+        const pX = (this.w / 2 - 150) + (this.player.x * 300);
+        const pY = (this.h - 100) + this.player.y;
+        const config = TOWER_MANIFEST[this.currentTower];
+
+        this.ctx.save();
+        this.ctx.translate(pX, pY);
+        this.ctx.scale(this.player.facing, 1);
+
+        const walk = Math.sin(this.player.walkFrame) * 10;
+        
+        // Shadow/Glow
+        this.ctx.shadowBlur = 20;
+        this.ctx.shadowColor = config.accent;
+
+        // Legs
+        this.ctx.strokeStyle = "#fff";
+        this.ctx.lineWidth = 3;
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, -20); 
+        this.ctx.lineTo(-5 + (this.player.onGround ? walk : 10), 0); // Leg L
+        this.ctx.moveTo(0, -20);
+        this.ctx.lineTo(5 - (this.player.onGround ? walk : 10), 0); // Leg R
+        this.ctx.stroke();
+
+        // Torso
+        this.ctx.fillStyle = "#fff";
+        this.ctx.fillRect(-4, -45, 8, 25);
+
+        // Head (Floating slightly for style)
+        this.ctx.beginPath();
+        this.ctx.arc(0, -55, 6, 0, Math.PI*2);
+        this.ctx.fill();
+
+        this.ctx.restore();
+    }
+
+    loop() {
+        this.update();
+        this.draw();
+        requestAnimationFrame(() => this.loop());
+    }
+}
+
+const engine = new TowerEngine();
+</script>
 </body>
 </html>
