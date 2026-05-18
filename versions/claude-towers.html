@@ -189,9 +189,9 @@ body{font-family:'DM Mono',monospace;user-select:none;position:fixed;inset:0}
 
 <!-- MOBILE ACTION BUTTONS -->
 <div id="act-btns">
-  <div class="act-btn" id="ab-rest" ontouchstart="ACT.restStart()" ontouchend="ACT.restEnd()">⟳ Rest</div>
-  <div class="act-btn" id="ab-bridge" onclick="ACT.bridge()">⌇ Bridge</div>
-  <div class="act-btn" id="ab-msg" onclick="ACT.msg()">✦ Carve</div>
+  <div class="act-btn" id="ab-rest">⟳ Rest</div>
+  <div class="act-btn" id="ab-bridge">⌇ Bridge</div>
+  <div class="act-btn" id="ab-msg">✦ Carve</div>
 </div>
 
 <!-- NOTIF -->
@@ -375,7 +375,9 @@ const S = {
   vx:0, vy:0,
   w:16, h:40,   // player AABB half-widths: actual width=32, height=40
   onGround:false, facing:1,
-  isResting:false, dead:false, inputLocked:false,
+  isResting:false, dead:false,
+  inputLocked:true,   // locked until startGame() — blocks physics during intro
+  gameActive:false,   // master switch: loop() skips physics+draw until game starts
   jumpBuf:0, coyote:0,
   doubleJumpAvail:true,   // resets on landing
   lastJumpTime:0,         // ms timestamp of last jump press, for double-tap detection
@@ -1268,19 +1270,41 @@ const INP=(()=>{
     }
   }
 
+  // Returns true if the touch target is a UI element that should handle its own events
+  function isUITarget(t){
+    let el = document.elementFromPoint(t.clientX, t.clientY);
+    while(el && el !== document.body){
+      const tag = el.tagName;
+      if(tag==='BUTTON'||tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return true;
+      const id = el.id||'';
+      const cls = el.className||'';
+      // Any element that's part of our modal, action bar, or screen overlays
+      if(id==='modal-bg'||id==='modal-box') return true;
+      if(typeof cls==='string' && (
+        cls.includes('act-btn')||cls.includes('mbtn')||
+        cls.includes('bopt')||cls.includes('ibtn')||
+        cls.includes('lsw')||cls.includes('tcard')||
+        cls.includes('iskip')||cls.includes('dbtn')
+      )) return true;
+      // Any element inside a .screen overlay
+      if(el.closest && el.closest('.screen')) return true;
+      if(el.closest && el.closest('#modal-bg')) return true;
+      if(el.closest && el.closest('#act-btns')) return true;
+      el = el.parentElement;
+    }
+    return false;
+  }
+
   function handleTouchStart(e){
-    if(S.inputLocked) return;
+    if(!S.gameActive || S.inputLocked) return;
+    // If any changed touch lands on a UI element, let it through untouched
+    for(const t of e.changedTouches){ if(isUITarget(t)) return; }
     e.preventDefault();
     for(const t of e.changedTouches){
       touches.set(t.identifier,{x:t.clientX,y:t.clientY,startY:t.clientY,startTime:performance.now()});
-      // Jump trigger: any touch in lower half of screen
       const yFrac=t.clientY/window.innerHeight;
       if(yFrac > CTRL_ZONE_TOP){
-        // Check for double-tap (second tap within 320ms)
-        const now=performance.now();
-        const gap=now-lastTouchJumpTime;
-        lastTouchJumpTime=now;
-        // Always set jumpBuf — physics decides if it's a normal or double jump
+        lastTouchJumpTime=performance.now();
         S.jumpBuf=16;
       }
     }
@@ -1288,6 +1312,9 @@ const INP=(()=>{
   }
 
   function handleTouchMove(e){
+    if(!S.gameActive) return;
+    // Don't intercept if any touch is on UI
+    for(const t of e.changedTouches){ if(isUITarget(t)) return; }
     e.preventDefault();
     for(const t of e.changedTouches){
       const existing=touches.get(t.identifier);
@@ -1297,8 +1324,11 @@ const INP=(()=>{
   }
 
   function handleTouchEnd(e){
-    e.preventDefault();
-    for(const t of e.changedTouches) touches.delete(t.identifier);
+    if(!S.gameActive) return;
+    for(const t of e.changedTouches){
+      if(!isUITarget(t)) e.preventDefault();
+      touches.delete(t.identifier);
+    }
     evalTouches();
   }
 
@@ -1545,6 +1575,23 @@ function startGame(tower){
     v.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9;box-shadow:inset 0 0 100px rgba(252,129,129,.4);opacity:0;transition:opacity .3s';
     document.body.appendChild(v);
   }
+  S.gameActive = true;
+  S.inputLocked = false;
+
+  // Wire mobile action buttons with stopPropagation so they
+  // never leak into the game's document-level touch handler
+  function wireBtn(id, fn){
+    const el=document.getElementById(id); if(!el) return;
+    ['touchstart','touchend','touchcancel','click'].forEach(ev=>{
+      el.addEventListener(ev, e=>{ e.stopPropagation(); }, {passive:false});
+    });
+    el.addEventListener('touchstart', e=>{ e.stopPropagation(); fn(e,'start'); },{passive:false});
+    el.addEventListener('touchend',   e=>{ e.stopPropagation(); fn(e,'end');   },{passive:false});
+    el.addEventListener('click',      e=>{ e.stopPropagation(); fn(e,'click'); });
+  }
+  wireBtn('ab-rest',   (e,phase)=>{ if(phase==='start') ACT.restStart(); else if(phase==='end'||phase==='click') ACT.restEnd(); });
+  wireBtn('ab-bridge', (e,phase)=>{ if(phase==='start'||phase==='click') ACT.bridge(); });
+  wireBtn('ab-msg',    (e,phase)=>{ if(phase==='start'||phase==='click') ACT.msg(); });
   notify('The tower has no top. Climb.');
   setTimeout(()=>S.save(), 500);
 }
@@ -1553,6 +1600,7 @@ function startGame(tower){
 function respawn(){
   S.dead = false;
   S.inputLocked = false;
+  S.gameActive = true;
   S.stamina = 100;
   S.embers = []; S.particles = [];
   placeOnFloor(1);
@@ -1563,9 +1611,11 @@ function respawn(){
 
 /* ═══ MAIN LOOP ═══ */
 function loop(){
-  S.time+=16;
-  updatePlayer();
-  draw();
+  if(S.gameActive){
+    S.time+=16;
+    updatePlayer();
+    draw();
+  }
   requestAnimationFrame(loop);
 }
 
@@ -1609,8 +1659,11 @@ const FLOW=(()=>{
   }
   function toTower(){showScreen('s-tower');}
   function chooseTower(key){
-    const nm=document.getElementById('name-in')?.value.trim()||'The Wanderer';
-    ID.set(nm,selColor);
+    // Only set identity if this is a new player (no saved identity yet)
+    if(!ID.get()){
+      const nm=document.getElementById('name-in')?.value.trim()||'The Wanderer';
+      ID.set(nm,selColor);
+    }
     ENTRY.play(key,()=>startGame(key));
   }
   function skip(){if(!document.getElementById('name-in').value.trim())document.getElementById('name-in').value='The Wanderer';showScreen('s-tower');}
