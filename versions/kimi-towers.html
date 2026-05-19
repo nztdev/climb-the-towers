@@ -857,8 +857,8 @@
                 if (floorY < -FLOOR_HEIGHT || floorY > height + FLOOR_HEIGHT) continue;
 
                 // Wall structure
-                const wallLeft = centerX - tower_width/2;
-                const wallRight = centerX + tower_width/2;
+                const wallLeft = centerX - PLATFORM_WIDTH/2;
+                const wallRight = centerX + PLATFORM_WIDTH/2;
 
                 // Lattice pattern
                 ctx.strokeStyle = 'rgba(45, 55, 72, 0.3)';
