@@ -435,6 +435,7 @@
         }
     </style>
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
     <div id="game-container">
@@ -845,14 +846,14 @@
             const tower = TOWERS[currentTower];
             const centerX = width / 2;
             const visibleFloors = Math.ceil(height / FLOOR_HEIGHT) + 2;
-            const startFloor = Math.floor(state.camera.y / FLOOR_HEIGHT);
+            const startFloor = Math.max(1, Math.floor((state.camera.y - height * 0.3) / FLOOR_HEIGHT) - 1);
 
             ctx.clearRect(0, 0, width, height);
 
             // Draw visible floors
             for (let i = -1; i < visibleFloors; i++) {
                 const floorNum = startFloor + i;
-                const floorY = floorNum * FLOOR_HEIGHT - state.camera.y;
+                const floorY = height * 0.7 - (floorNum * FLOOR_HEIGHT) + state.camera.y;
 
                 if (floorY < -FLOOR_HEIGHT || floorY > height + FLOOR_HEIGHT) continue;
 
@@ -929,7 +930,7 @@
                 // Bridges from this floor
                 state.bridgesBuilt.filter(b => b.from === floorNum).forEach(b => {
                     const startX = platformX + b.x * platformWidth;
-                    const endY = (floorNum + 1) * FLOOR_HEIGHT - state.camera.y;
+                    const endY = height * 0.7 - ((floorNum + 1) * FLOOR_HEIGHT) + state.camera.y;
                     const endX = startX + (b.to - floorNum) * 40;
 
                     if (b.type === 'rope') {
@@ -994,7 +995,7 @@
             }
 
             // Draw player
-            const playerFloorY = state.floor * FLOOR_HEIGHT - state.camera.y;
+            const playerFloorY = height * 0.7 - (state.floor * FLOOR_HEIGHT) + state.camera.y;
             const platformWidth = Math.max(200, PLATFORM_WIDTH - state.floor * 2);
             const platformX = centerX - platformWidth / 2;
             const playerScreenX = platformX + state.x * platformWidth;
@@ -1179,8 +1180,8 @@
             }
 
             // Check bridge collisions for climbing up
-            const nextFloorY = (state.floor + 1) * FLOOR_HEIGHT - state.camera.y;
-            const currentFloorY = state.floor * FLOOR_HEIGHT - state.camera.y;
+            const nextFloorY = height * 0.7 - ((state.floor + 1) * FLOOR_HEIGHT) + state.camera.y;
+            const currentFloorY = height * 0.7 - (state.floor * FLOOR_HEIGHT) + state.camera.y;
 
             state.bridgesBuilt.forEach(bridge => {
                 if (bridge.from === state.floor) {
@@ -1218,7 +1219,7 @@
             }
 
             // Camera follow
-            const targetCamY = state.floor * FLOOR_HEIGHT - height * 0.7;
+            const targetCamY = state.floor * FLOOR_HEIGHT;
             state.camera.y += (targetCamY - state.camera.y) * 0.1;
 
             // Update UI
